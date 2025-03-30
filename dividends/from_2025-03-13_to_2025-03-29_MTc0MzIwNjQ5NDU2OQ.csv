@@ -1,0 +1,4 @@
+Action,Time,ISIN,Ticker,Name,No. of shares,Price / share,Currency (Price / share),Exchange rate,Total,Currency (Total),Withholding tax,Currency (Withholding tax)
+Dividend (Dividend),2025-03-14 12:44:01,US6153691059,MCO,"Moody's",2.0000000000,0.799000,USD,Not available,1.23,"GBP",0.28,USD
+Dividend (Dividend),2025-03-28 11:42:21,US9741551033,WING,"Wingstop",5.0000000000,0.229500,USD,Not available,0.89,"GBP",0.20,USD
+Dividend (Dividend),2025-03-28 11:54:50,US38141G1040,GS,"Goldman Sachs",1.0000000000,2.550000,USD,Not available,1.97,"GBP",0.45,USD

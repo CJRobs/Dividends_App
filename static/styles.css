@@ -1,0 +1,182 @@
+/* Simplified Dashboard Styling */
+
+/* Base styles */
+.main {
+    background-color: #f9f9fb;
+}
+
+[data-theme="dark"] .main {
+    background-color: #121212;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    color: #1f2937;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+}
+
+p, li, div {
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    color: #374151;
+}
+
+/* Dark mode text */
+[data-theme="dark"] h1, [data-theme="dark"] h2, [data-theme="dark"] h3, 
+[data-theme="dark"] h4, [data-theme="dark"] p, [data-theme="dark"] li, 
+[data-theme="dark"] div {
+    color: #f3f4f6;
+}
+
+/* Metric cards */
+.metric-card {
+    background-color: #ffffff;
+    border-radius: 0.5rem;
+    padding: 1.25rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    text-align: center;
+    height: 100%;
+    border-top: 4px solid #4e8df5;
+}
+
+.metric-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: #1e40af;
+}
+
+.metric-label {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #6b7280;
+}
+
+[data-theme="dark"] .metric-card {
+    background-color: #2d2d2d;
+}
+
+[data-theme="dark"] .metric-value {
+    color: #60a5fa;
+}
+
+/* Dashboard components */
+.stButton > button, .stDownloadButton > button {
+    border-radius: 0.375rem;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    background-color: #4e8df5;
+    color: white;
+    border: none;
+    transition: all 0.2s ease;
+}
+
+.stButton > button:hover, .stDownloadButton > button:hover {
+    background-color: #1e40af;
+}
+
+/* Chart containers */
+.js-plotly-plot {
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    background-color: #ffffff;
+    padding: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+[data-theme="dark"] .js-plotly-plot {
+    background-color: #2d2d2d;
+}
+
+/* Status indicators */
+.confidence-high {
+    color: #22c55e;
+    font-weight: 600;
+}
+
+.confidence-medium {
+    color: #f59e0b;
+    font-weight: 600;
+}
+
+.confidence-low {
+    color: #ef4444;
+    font-weight: 600;
+}
+
+/* Dataframes and tables */
+.dataframe {
+    font-size: 0.875rem;
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.dataframe th {
+    background-color: #f9fafb;
+    color: #374151;
+    font-weight: 600;
+    text-align: left;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.dataframe td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.dataframe tr:hover td {
+    background-color: #f3f4f6;
+}
+
+[data-theme="dark"] .dataframe th {
+    background-color: #374151;
+    color: #f3f4f6;
+    border-bottom: 1px solid #4b5563;
+}
+
+/* Info boxes */
+.stInfo, .stSuccess, .stWarning, .stError {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1.25rem;
+}
+
+.stInfo {
+    background-color: rgba(78, 141, 245, 0.15);
+    border-left: 4px solid #4e8df5;
+}
+
+.stSuccess {
+    background-color: rgba(34, 197, 94, 0.15);
+    border-left: 4px solid #22c55e;
+}
+
+.stWarning {
+    background-color: rgba(245, 158, 11, 0.15);
+    border-left: 4px solid #f59e0b;
+}
+
+.stError {
+    background-color: rgba(239, 68, 68, 0.15);
+    border-left: 4px solid #ef4444;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .main .block-container {
+        padding: 0.5rem;
+    }
+
+    h1 { font-size: 1.75rem; }
+    h2 { font-size: 1.25rem; }
+    h3 { font-size: 1.125rem; }
+    
+    .metric-value { font-size: 1.5rem; }
+    .metric-label { font-size: 0.75rem; }
+}
