@@ -7,47 +7,6 @@ from datetime import datetime
 
 # Forecasting functions
 @st.cache_data
-def simple_moving_average_forecast(monthly_data, forecast_months):
-    """Simple moving average forecast with seasonal adjustment"""
-    # Calculate recent average
-    recent_months = min(12, len(monthly_data))
-    recent_avg = monthly_data['Total'].tail(recent_months).mean()
-    
-    # Generate forecast dates
-    last_date = monthly_data['Date'].iloc[-1]
-    forecast_dates = pd.date_range(
-        start=last_date + pd.DateOffset(months=1),
-        periods=forecast_months,
-        freq='M'
-    )
-    
-    # Simple forecast with seasonal adjustment
-    if len(monthly_data) >= 12:
-        # Calculate monthly seasonal factors
-        monthly_data['Month'] = monthly_data['Date'].dt.month
-        seasonal_factors = monthly_data.groupby('Month')['Total'].mean() / monthly_data['Total'].mean()
-        
-        forecasts = []
-        for date in forecast_dates:
-            month = date.month
-            seasonal_factor = seasonal_factors.get(month, 1.0)
-            forecasts.append(recent_avg * seasonal_factor)
-    else:
-        # Without enough data for seasonality
-        forecasts = [recent_avg] * len(forecast_dates)
-    
-    forecasted_data = pd.DataFrame({
-        'Date': forecast_dates,
-        'Forecast': forecasts
-    })
-    
-    # Add simple confidence intervals
-    forecasted_data['Lower_CI'] = forecasted_data['Forecast'] * 0.8
-    forecasted_data['Upper_CI'] = forecasted_data['Forecast'] * 1.2
-    
-    return forecasted_data
-
-@st.cache_data
 def sarimax_forecast(monthly_data, forecast_months):
     """SARIMAX forecasting model with error handling"""
     try:
@@ -163,45 +122,49 @@ def show_forecast_tab(df, monthly_data, currency, theme, current_date, current_y
     format_currency : function
         Function to format currency values
     """
+    st.subheader("Dividend Forecast Analysis")
+    
     # Forecast settings
     forecast_months = st.slider("Forecast Months", 6, 24, 12)
     
     # Check if we have enough data for forecasting
     if len(monthly_data) < 12:
         st.warning("⚠️ Not enough historical data for reliable forecasting. Need at least 12 months of data.")
-        st.info("Using simplified forecast model due to limited data.")
-        forecast_method = "simple"
-    else:
-        forecast_method = st.radio(
-            "Select Forecasting Method",
-            ["SARIMAX (Seasonal ARIMA)", "Holt-Winters", "Simple Moving Average"],
-            index=0,
-            horizontal=True
-        )
+        return
     
-    with st.spinner("Generating forecast..."):
-        if forecast_method == "SARIMAX (Seasonal ARIMA)" and len(monthly_data) >= 24:
-            # Using local sarimax_forecast function
+    # Add tabs for different forecasting methods
+    forecast_tabs = st.tabs(["SARIMAX Forecast", "Holt-Winters Forecast"])
+    
+    # Tab 1: SARIMAX
+    with forecast_tabs[0]:
+        with st.spinner("Generating SARIMAX forecast..."):
             forecasted_data, success = sarimax_forecast(monthly_data, forecast_months)
-            if not success:
-                st.warning("SARIMAX modeling failed. Falling back to Simple Moving Average.")
-                # Using local simple_moving_average_forecast function
-                forecasted_data = simple_moving_average_forecast(monthly_data, forecast_months)
             
-        elif forecast_method == "Holt-Winters" and len(monthly_data) >= 24:
-            # Using local holtwinters_forecast function
-            forecasted_data, success = holtwinters_forecast(monthly_data, forecast_months)
             if not success:
-                st.warning("Holt-Winters modeling failed. Falling back to Simple Moving Average.")
-                # Using local simple_moving_average_forecast function
-                forecasted_data = simple_moving_average_forecast(monthly_data, forecast_months)
-        else:
-            # Simple moving average forecast using local function
-            forecast_method = "Simple Moving Average"
-            forecasted_data = simple_moving_average_forecast(monthly_data, forecast_months)
+                st.error("SARIMAX forecasting failed. Please try another method.")
+            else:
+                display_forecast(forecasted_data, monthly_data, currency, theme, format_currency, "SARIMAX")
+                
+                # Financial Independence calculator for SARIMAX
+                display_fi_calculator(forecasted_data, currency, format_currency, "SARIMAX")
     
+    # Tab 2: Holt-Winters
+    with forecast_tabs[1]:
+        with st.spinner("Generating Holt-Winters forecast..."):
+            forecasted_data, success = holtwinters_forecast(monthly_data, forecast_months)
+            
+            if not success:
+                st.error("Holt-Winters forecasting failed. Please try another method.")
+            else:
+                display_forecast(forecasted_data, monthly_data, currency, theme, format_currency, "Holt-Winters")
+                
+                # Financial Independence calculator for Holt-Winters
+                display_fi_calculator(forecasted_data, currency, format_currency, "Holt-Winters")
+
+def display_forecast(forecasted_data, monthly_data, currency, theme, format_currency, method_name):
+    """Helper function to display forecast results"""
     # Display forecast results
-    st.subheader(f"Dividend Forecast ({forecast_method})")
+    st.subheader(f"Dividend Forecast ({method_name})")
     
     # Combine actual and forecasted data for plotting
     historical_for_plot = monthly_data[['Date', 'Total']].rename(columns={'Total': 'Actual'})
@@ -244,7 +207,7 @@ def show_forecast_tab(df, monthly_data, currency, theme, current_date, current_y
     
     # Update layout
     fig_forecast.update_layout(
-        title=f"{forecast_months}-Month Dividend Forecast",
+        title=f"{len(forecasted_data)}-Month Dividend Forecast",
         template="plotly_white" if theme == "Light" else "plotly_dark",
         xaxis=dict(
             title="Date",
@@ -316,7 +279,8 @@ def show_forecast_tab(df, monthly_data, currency, theme, current_date, current_y
     annual_forecast = forecasted_data.groupby('Year')['Forecast'].sum().reset_index()
     
     # Get historical annual totals
-    historical_annual = df.groupby('Year')['Total'].sum().reset_index()
+    historical_annual = monthly_data.groupby(monthly_data['Date'].dt.year)['Total'].sum().reset_index()
+    historical_annual.columns = ['Year', 'Total']
     
     # Combine historical and forecast
     combined_annual = pd.concat([
@@ -347,7 +311,9 @@ def show_forecast_tab(df, monthly_data, currency, theme, current_date, current_y
     )
     
     st.plotly_chart(fig_annual, use_container_width=True)
-    
+
+def display_fi_calculator(forecasted_data, currency, format_currency, method_name):
+    """Helper function to display Financial Independence calculator"""
     # Financial Independence Calculator
     st.subheader("Financial Independence Calculator")
     
@@ -360,7 +326,7 @@ def show_forecast_tab(df, monthly_data, currency, theme, current_date, current_y
             value=2000.0, 
             step=100.0,
             format="%.2f",
-            key="fi_expenses"
+            key=f"fi_expenses_{method_name}"
         )
         
         annual_expenses = monthly_expenses * 12
@@ -374,7 +340,8 @@ def show_forecast_tab(df, monthly_data, currency, theme, current_date, current_y
             max_value=10.0, 
             value=4.0, 
             step=0.1,
-            help="Percentage of portfolio you can safely withdraw each year"
+            help="Percentage of portfolio you can safely withdraw each year",
+            key=f"withdrawal_rate_{method_name}"
         )
         
         # Calculate FI target
@@ -383,6 +350,10 @@ def show_forecast_tab(df, monthly_data, currency, theme, current_date, current_y
         st.write(f"Financial Independence Target: {format_currency(fi_target, currency)}")
     
     # Now calculate the dividend coverage
+    # Group forecasts by year for annual projection
+    forecasted_data['Year'] = forecasted_data['Date'].dt.year
+    annual_forecast = forecasted_data.groupby('Year')['Forecast'].sum().reset_index()
+    
     latest_annual_forecast = annual_forecast['Forecast'].iloc[-1] if len(annual_forecast) > 0 else 0
     
     coverage_percent = (latest_annual_forecast / annual_expenses) * 100 if annual_expenses > 0 else 0
@@ -415,8 +386,31 @@ def show_forecast_tab(df, monthly_data, currency, theme, current_date, current_y
         
         st.write(f"Additional portfolio needed: {format_currency(additional_portfolio, currency)} at {withdrawal_rate}% withdrawal rate")
         
-        # Calculate time to FI with current growth rate
-        if 'growth_rate' in locals() and growth_rate > 0:
-            years_to_double = 72 / growth_rate  # Rule of 72
+        # Calculate time to FI based on growth rate
+        forecasted_annual_growth = 0
+        
+        if len(annual_forecast) >= 2:
+            first_year = annual_forecast['Forecast'].iloc[0]
+            last_year = annual_forecast['Forecast'].iloc[-1]
+            years_diff = annual_forecast['Year'].iloc[-1] - annual_forecast['Year'].iloc[0]
             
-            st.write(f"At current growth rate of {growth_rate:.1f}%, your dividend income would double every {years_to_double:.1f} years")
+            if years_diff > 0 and first_year > 0:
+                annual_growth_rate = ((last_year / first_year) ** (1/years_diff) - 1) * 100
+                forecasted_annual_growth = annual_growth_rate
+        
+        if forecasted_annual_growth > 0:
+            years_to_double = 72 / forecasted_annual_growth  # Rule of 72
+            
+            st.write(f"At projected growth rate of {forecasted_annual_growth:.1f}%, your dividend income would double every {years_to_double:.1f} years")
+            
+            # Calculate years to reach FI (simplified calculation)
+            current_level = latest_annual_forecast
+            target_level = annual_expenses
+            years_to_fi = (np.log(target_level / current_level) / np.log(1 + forecasted_annual_growth/100))
+            
+            if years_to_fi > 0:
+                st.write(f"At this growth rate, you could reach financial independence in approximately {years_to_fi:.1f} years")
+            else:
+                st.write("Growth rate is too low to reach financial independence with dividends alone")
+        else:
+            st.write("Insufficient data or growth to project financial independence timeline")

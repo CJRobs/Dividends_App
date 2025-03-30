@@ -203,26 +203,15 @@ def show_monthly_analysis_tab(df, monthly_data, currency, theme, current_date, c
         most_recent_month_name = "No data"
     
     # Calculate percentage of living expenses covered
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        monthly_expenses = st.number_input(
-            "Your Monthly Expenses", 
-            min_value=0.0, 
-            value=2000.0, 
-            step=100.0,
-            format="%.2f",
-            help="Enter your average monthly expenses to see how much is covered by dividends"
-        )
-    
-    with col2:
-        coverage_goal = st.slider(
-            "Coverage Goal (%)", 
-            min_value=0, 
-            max_value=100, 
-            value=100,
-            help="Your target percentage of expenses to be covered by dividend income"
-        )
+    monthly_expenses = st.number_input(
+        "Your Monthly Expenses", 
+        min_value=0.0, 
+        value=2000.0, 
+        step=100.0,
+        format="%.2f",
+        help="Enter your average monthly expenses to see how much is covered by dividends",
+        key="monthly_analysis_expenses"
+    )
     
     # Calculate coverage based on most recent month
     coverage_percent = (most_recent_month_amount / monthly_expenses) * 100 if monthly_expenses > 0 else 0
@@ -235,8 +224,7 @@ def show_monthly_analysis_tab(df, monthly_data, currency, theme, current_date, c
     st.metric(
         "Current Coverage",
         f"{coverage_percent:.1f}%",
-        delta=f"{coverage_percent - coverage_goal:.1f}%" if coverage_percent != coverage_goal else None,
-        delta_color="normal" if coverage_percent >= coverage_goal else "inverse"
+        delta=None
     )
     
     st.metric(

@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
+import numpy as np
 
 # Month names for calendar
 month_names = {
@@ -22,7 +23,10 @@ month_names = {
 
 @st.cache_data
 def create_dividend_calendar(df, future_months=12, lookback_months=24):
-    """Create a simplified monthly dividend payment calendar based on recent payment patterns"""
+    """
+    Create a monthly dividend payment calendar based on payment patterns
+    Only includes stocks with more than 1 payment
+    """
     # Get current date
     current_date = datetime.now()
     current_month = current_date.month
@@ -40,6 +44,13 @@ def create_dividend_calendar(df, future_months=12, lookback_months=24):
     lookback_date = current_date - timedelta(days=lookback_months*30)
     recent_df = df[df['Time'] >= lookback_date]
     
+    # Count payments per stock to filter out those with only 1 payment
+    payment_counts = recent_df.groupby('Name').size()
+    stocks_with_multiple_payments = payment_counts[payment_counts > 1].index.tolist()
+    
+    # Filter to only include stocks with multiple payments
+    recent_df = recent_df[recent_df['Name'].isin(stocks_with_multiple_payments)]
+    
     # Get list of stocks that have paid in the lookback period
     recent_stocks = recent_df['Name'].unique()
     
@@ -52,11 +63,11 @@ def create_dividend_calendar(df, future_months=12, lookback_months=24):
     
     # Get the historical payment pattern by stock and month
     payment_pattern = recent_df.groupby(['Name', 'Month']).agg({
-        'Total': ['mean', 'count', 'last'],
+        'Total': ['last'],
         'Time': ['max']
     }).reset_index()
     
-    payment_pattern.columns = ['Name', 'Month', 'Average Amount', 'Frequency', 'Last Amount', 'Last Payment']
+    payment_pattern.columns = ['Name', 'Month', 'Last Amount', 'Last Payment']
     
     # Find monthly payers (stocks that have paid in at least 6 different months)
     monthly_payers = recent_df.groupby('Name')['Month'].nunique()
@@ -73,8 +84,6 @@ def create_dividend_calendar(df, future_months=12, lookback_months=24):
             monthly_pattern = pd.concat([monthly_pattern, pd.DataFrame({
                 'Name': [payer],
                 'Month': [month],
-                'Average Amount': [latest_amount],
-                'Frequency': [payer_data.shape[0]],
                 'Last Amount': [latest_amount],
                 'Last Payment': [payer_data['Time'].max()]
             })])
@@ -86,12 +95,6 @@ def create_dividend_calendar(df, future_months=12, lookback_months=24):
         monthly_pattern
     ]).reset_index(drop=True)
     
-    # Keep only stocks that pay regularly (at least twice) or are monthly payers
-    payment_pattern = payment_pattern[
-        (payment_pattern['Frequency'] >= 2) | 
-        (payment_pattern['Name'].isin(monthly_payers))
-    ]
-    
     # Create calendar events for the upcoming months
     calendar_events = []
     
@@ -102,12 +105,6 @@ def create_dividend_calendar(df, future_months=12, lookback_months=24):
         month_payments = payment_pattern[payment_pattern['Month'] == month].copy()
         
         for _, payment in month_payments.iterrows():
-            # Calculate confidence level
-            if payment['Name'] in monthly_payers:
-                confidence = "High"  # Monthly payers get high confidence
-            else:
-                confidence = "High" if payment['Frequency'] >= 4 else "Medium" if payment['Frequency'] >= 3 else "Low"
-            
             calendar_events.append({
                 'Year': year,
                 'Month': month,
@@ -115,10 +112,8 @@ def create_dividend_calendar(df, future_months=12, lookback_months=24):
                 'Period': f"{month_name} {year}",
                 'Name': payment['Name'],
                 'Estimated Amount': payment['Last Amount'],
-                'Frequency': payment['Frequency'],
                 'Last Payment': payment['Last Payment'],
                 'Days Since Last': (current_date - payment['Last Payment']).days,
-                'Confidence': confidence,
                 'Is Monthly': payment['Name'] in monthly_payers
             })
     
@@ -131,7 +126,8 @@ def create_dividend_calendar(df, future_months=12, lookback_months=24):
 @st.cache_data
 def analyze_dividend_cadence(df):
     """
-    Analyze the dividend payment cadence for each stock and predict next payment dates
+    Analyze the dividend payment cadence for each stock with simplified detection
+    Only includes stocks with more than 1 payment
     """
     # Get unique stocks in portfolio
     stocks = df['Name'].unique()
@@ -146,92 +142,86 @@ def analyze_dividend_cadence(df):
         
         # Skip if less than 2 payments
         if len(stock_payments) < 2:
-            results.append({
-                'Name': stock,
-                'Total Payments': len(stock_payments),
-                'Last Payment Date': stock_payments['Time'].max() if len(stock_payments) > 0 else None,
-                'Last Amount': stock_payments['Total'].iloc[-1] if len(stock_payments) > 0 else None,
-                'Payment Cadence': 'Unknown',
-                'Expected Next Payment': None,
-                'Confidence': 'Low'
-            })
             continue
             
-        # Get payment dates and intervals
+        # Get payment dates, months, and intervals
         payment_dates = stock_payments['Time'].sort_values().reset_index(drop=True)
+        payment_months = stock_payments['Month'].sort_values().unique()
+        
         intervals = []
         for i in range(1, len(payment_dates)):
             interval_days = (payment_dates[i] - payment_dates[i-1]).days
             intervals.append(interval_days)
         
         # Analyze payment pattern
-        if len(intervals) == 0:
-            cadence = "Unknown"
-            confidence = "Low"
-            next_payment = None
+        avg_interval = sum(intervals) / len(intervals)
+            
+        # Determine cadence
+        if 25 <= avg_interval <= 35:
+            cadence = "Monthly"
+        elif 85 <= avg_interval <= 95:
+            cadence = "Quarterly"
+        elif 175 <= avg_interval <= 190:
+            cadence = "Semi-annual"
+        elif 355 <= avg_interval <= 375:
+            cadence = "Annual"
         else:
-            avg_interval = sum(intervals) / len(intervals)
-            std_interval = pd.Series(intervals).std() if len(intervals) > 1 else 0
-            
-            # Determine cadence
-            if avg_interval >= 85 and avg_interval <= 95:
-                cadence = "Quarterly"
-            elif avg_interval >= 28 and avg_interval <= 32:
-                cadence = "Monthly"
-            elif avg_interval >= 175 and avg_interval <= 185:
-                cadence = "Semi-annual"
-            elif avg_interval >= 355 and avg_interval <= 375:
-                cadence = "Annual"
+            # Check if it's quarterly but with specific months
+            if len(payment_months) <= 4 and len(stock_payments) >= 4:
+                months_str = ", ".join([month_names[m] for m in sorted(payment_months)])
+                cadence = f"Quarterly ({months_str})"
+            elif len(payment_months) == 2 and len(stock_payments) >= 3:
+                months_str = ", ".join([month_names[m] for m in sorted(payment_months)])
+                cadence = f"Semi-annual ({months_str})"
             else:
-                # Check if it's quarterly but with irregular months
-                months = stock_payments['Time'].dt.month
-                unique_months = sorted(months.unique())
+                cadence = f"Irregular (avg {avg_interval:.1f} days)"
                 
-                if len(unique_months) <= 4 and len(stock_payments) >= 4:
-                    months_str = ", ".join([month_names[m] for m in unique_months])
-                    cadence = f"Quarterly ({months_str})"
-                else:
-                    cadence = f"Irregular (avg {avg_interval:.1f} days)"
+        # Predict next payment date using the pattern
+        last_payment = stock_payments['Time'].max()
+        
+        # Use pattern to predict next payment
+        if cadence == "Monthly":
+            next_payment = last_payment + pd.DateOffset(months=1)
+        elif cadence == "Quarterly":
+            next_payment = last_payment + pd.DateOffset(months=3)
+        elif cadence == "Semi-annual":
+            next_payment = last_payment + pd.DateOffset(months=6)
+        elif cadence == "Annual":
+            next_payment = last_payment + pd.DateOffset(months=12)
+        elif "Quarterly" in cadence or "Semi-annual" in cadence:
+            # For quarterly/semi-annual with specific months
+            if "Quarterly" in cadence:
+                base_interval = 3
+            else:  # Semi-annual
+                base_interval = 6
             
-            # Determine confidence based on consistency
-            if std_interval < 5:
-                confidence = "High"
-            elif std_interval < 15:
-                confidence = "Medium"
-            else:
-                confidence = "Low"
-                
-            # Predict next payment date
-            last_payment = stock_payments['Time'].max()
+            next_payment = last_payment + pd.DateOffset(months=base_interval)
             
-            # Use pattern to predict next payment
-            if cadence == "Monthly":
-                next_payment = last_payment + pd.DateOffset(months=1)
-            elif cadence == "Quarterly":
-                next_payment = last_payment + pd.DateOffset(months=3)
-            elif cadence == "Semi-annual":
-                next_payment = last_payment + pd.DateOffset(months=6)
-            elif cadence == "Annual":
-                next_payment = last_payment + pd.DateOffset(months=12)
-            elif "Quarterly" in cadence:
-                # For quarterly with specific months
-                next_payment = last_payment + pd.DateOffset(months=3)
+            # Check if we need to adjust based on known payment months
+            try:
+                known_months = sorted(payment_months)
+                target_month = next_payment.month
                 
-                # Check if we need to adjust based on known payment months
-                try:
-                    known_months = [m for m in unique_months]
+                # Find the next month in the sequence
+                found = False
+                for _ in range(12):  # Try for a full year
+                    if target_month in known_months:
+                        found = True
+                        break
+                    next_payment += pd.DateOffset(months=1)
                     target_month = next_payment.month
-                    while target_month not in known_months:
-                        next_payment += pd.DateOffset(months=1)
-                        target_month = next_payment.month
-                except:
-                    pass
-            else:
-                # Use average interval for irregular payments
-                next_payment = last_payment + pd.DateOffset(days=int(avg_interval))
+                
+                if not found:
+                    # Default to base interval if we can't find a match
+                    next_payment = last_payment + pd.DateOffset(months=base_interval)
+            except Exception:
+                # Fallback
+                next_payment = last_payment + pd.DateOffset(months=base_interval)
+        else:
+            # Use average interval for irregular payments
+            next_payment = last_payment + pd.DateOffset(days=int(avg_interval))
                 
         # Get last payment amount
-        last_payment = stock_payments['Time'].max()
         last_amount = stock_payments.loc[stock_payments['Time'] == last_payment, 'Total'].iloc[0]
                 
         # Store results
@@ -241,9 +231,9 @@ def analyze_dividend_cadence(df):
             'Last Payment Date': last_payment,
             'Last Amount': last_amount,
             'Payment Cadence': cadence,
+            'Payment Months': ", ".join([month_names[m] for m in sorted(payment_months)]) if len(payment_months) > 0 else "Unknown",
             'Average Interval': f"{avg_interval:.1f} days" if 'avg_interval' in locals() else "Unknown",
-            'Expected Next Payment': next_payment,
-            'Confidence': confidence
+            'Expected Next Payment': next_payment
         })
     
     # Convert to DataFrame
@@ -262,39 +252,89 @@ def analyze_dividend_cadence(df):
 
 def show_dividend_calendar_tab(df, monthly_data, currency, theme, current_date, current_year, current_month, format_currency, **kwargs):
     """
-    Display the Dividend Calendar tab content
-    
-    Parameters:
-    -----------
-    df : pandas.DataFrame
-        The main dataframe with all dividend data
-    monthly_data : pandas.DataFrame
-        Preprocessed monthly dividend data
-    currency : str
-        Currency code for display (GBP, USD, EUR)
-    theme : str
-        UI theme (Light or Dark)
-    current_date : datetime
-        Current date for filtering
-    current_year : int
-        Current year
-    current_month : int
-        Current month
-    format_currency : function
-        Function to format currency values
+    Display the Dividend Calendar tab content with simplified forecasting
+    Only includes stocks with more than 1 payment
     """
     st.subheader("Dividend Calendar & Cadence Analysis")
     
-    # Use the local functions instead of ones passed from main app
-    
     # Create tabs for different views
-    calendar_views = st.tabs(["Stock Cadence & Next Payment", "Monthly Payment Calendar"])
+    calendar_views = st.tabs(["Stock Cadence & Next Payment", "Monthly Payment Calendar", "Calendar Settings"])
+    
+    # Load saved settings from session state
+    if 'calendar_stocks' not in st.session_state:
+        st.session_state.calendar_stocks = []
+    
+    if 'future_months' not in st.session_state:
+        st.session_state.future_months = 12
+        
+    if 'lookback_months' not in st.session_state:
+        st.session_state.lookback_months = 24
+    
+    # Tab 3: Calendar Settings
+    with calendar_views[2]:
+        st.subheader("Calendar Configuration")
+        
+        # Settings for calendar prediction
+        st.session_state.future_months = st.slider(
+            "Number of Months to Forecast", 
+            1, 36, st.session_state.future_months,
+            key="future_months_slider"
+        )
+        
+        st.session_state.lookback_months = st.slider(
+            "Historical Data to Consider (Months)", 
+            6, 48, st.session_state.lookback_months,
+            key="lookback_months_slider"
+        )
+        
+        # Option to manually manage stocks in calendar
+        st.subheader("Manual Stock Selection")
+        
+        # Get unique stocks from the dataframe
+        all_stocks = sorted(df['Name'].unique())
+        
+        # Multi-select for stocks to include in calendar
+        selected_stocks = st.multiselect(
+            "Select Stocks to Include in Calendar",
+            options=all_stocks,
+            default=st.session_state.calendar_stocks if st.session_state.calendar_stocks else [],
+            key="calendar_stock_selector"
+        )
+        
+        # Save selected stocks to session state
+        st.session_state.calendar_stocks = selected_stocks
+        
+        # Show information about manually selected stocks
+        if selected_stocks:
+            # Get payment information for selected stocks
+            manual_stock_info = df[df['Name'].isin(selected_stocks)].copy()
+            
+            if not manual_stock_info.empty:
+                # Group by stock and get last payment date and amount
+                manual_info = manual_stock_info.groupby('Name').agg({
+                    'Time': 'max',
+                    'Total': lambda x: x.iloc[-1]
+                }).reset_index()
+                
+                manual_info.columns = ['Stock', 'Last Payment Date', 'Last Amount']
+                manual_info['Last Payment Date'] = manual_info['Last Payment Date'].dt.strftime('%d %b %Y')
+                manual_info['Last Amount'] = manual_info['Last Amount'].apply(lambda x: format_currency(x, currency))
+                
+                st.write("Selected Stock Information:")
+                st.dataframe(manual_info, use_container_width=True)
+    
+    # Use the state values for prediction
+    future_months = st.session_state.future_months
+    lookback_months = st.session_state.lookback_months
+    
+    # Create calendar using the function
+    calendar_df, recent_stocks = create_dividend_calendar(df, future_months, lookback_months)
     
     # Tab 1: Stock Cadence Analysis
     with calendar_views[0]:
         st.subheader("Payment Cadence & Next Expected Dividend")
         
-        # Get dividend cadence analysis using the local function
+        # Get dividend cadence analysis
         cadence_results = analyze_dividend_cadence(df)
         
         if cadence_results.empty:
@@ -336,8 +376,8 @@ def show_dividend_calendar_tab(df, monthly_data, currency, theme, current_date, 
             
             # Display table
             # Select columns to display
-            display_columns = ['Name', 'Payment Cadence', 'Last Payment Date', 'Last Amount', 
-                              'Expected Next Payment', 'Confidence', 'Total Payments']
+            display_columns = ['Name', 'Payment Cadence', 'Payment Months', 'Last Payment Date', 
+                              'Last Amount', 'Expected Next Payment', 'Total Payments']
             
             st.dataframe(
                 display_df[display_columns], 
@@ -366,10 +406,6 @@ def show_dividend_calendar_tab(df, monthly_data, currency, theme, current_date, 
                 fig = go.Figure()
                 
                 for _, row in timeline_data.iterrows():
-                    # Set color based on confidence
-                    confidence_color = "#3CB371" if row['Confidence'] == "High" else \
-                                       "#FFA500" if row['Confidence'] == "Medium" else "#FF6347"
-                    
                     payment_date = row['Expected Next Payment']
                     stock_name = row['Name']
                     
@@ -380,7 +416,7 @@ def show_dividend_calendar_tab(df, monthly_data, currency, theme, current_date, 
                         marker=dict(
                             symbol='diamond',
                             size=12,
-                            color=confidence_color
+                            color='#1a237e'
                         ),
                         name=stock_name,
                         text=f"{stock_name}: {payment_date.strftime('%d %b %Y')}",
@@ -427,21 +463,84 @@ def show_dividend_calendar_tab(df, monthly_data, currency, theme, current_date, 
     with calendar_views[1]:
         st.subheader("Monthly Dividend Payment Calendar")
         
-        # Settings
-        col1, col2 = st.columns(2)
-        with col1:
-            future_months = st.slider("Number of Months to Forecast", 1, 24, 12)
-        with col2:
-            lookback_months = st.slider("Historical Data to Consider (Months)", 6, 36, 24)
-        
-        # Create calendar using the local function
-        calendar_df, recent_stocks = create_dividend_calendar(df, future_months, lookback_months)
+        # Add manually selected stocks to the calendar if they're not already there
+        if st.session_state.calendar_stocks:
+            # Filter manually selected stocks that aren't in the calendar
+            manual_stocks = [s for s in st.session_state.calendar_stocks if s not in calendar_df['Name'].unique()]
+            
+            if manual_stocks:
+                manual_additions = []
+                
+                for stock in manual_stocks:
+                    # Get stock data
+                    stock_data = df[df['Name'] == stock]
+                    
+                    if not stock_data.empty:
+                        # Skip if less than 2 payments
+                        if len(stock_data) < 2:
+                            continue
+                            
+                        # Get the last payment
+                        last_payment = stock_data.sort_values('Time', ascending=False).iloc[0]
+                        last_payment_date = last_payment['Time']
+                        last_amount = last_payment['Total']
+                        
+                        # Try to analyze the cadence
+                        cadence_info = cadence_results[cadence_results['Name'] == stock]
+                        
+                        if not cadence_info.empty:
+                            cadence = cadence_info.iloc[0]['Payment Cadence']
+                            next_payment = cadence_info.iloc[0]['Expected Next Payment']
+                        else:
+                            cadence = "Unknown"
+                            next_payment = last_payment_date + pd.DateOffset(months=3)  # Default to quarterly
+                        
+                        # Add to calendar for the next year
+                        for month_offset in range(future_months):
+                            forecast_date = datetime.now() + pd.DateOffset(months=month_offset)
+                            year = forecast_date.year
+                            month = forecast_date.month
+                            
+                            # Only add if the payment pattern suggests this month
+                            payment_months = []
+                            if "Quarterly" in cadence or "Semi-annual" in cadence:
+                                # Extract the months from the cadence
+                                month_str = cadence.split('(')[1].split(')')[0]
+                                for m_name in month_str.split(', '):
+                                    for m_num, m_full in month_names.items():
+                                        if m_full == m_name:
+                                            payment_months.append(m_num)
+                                            break
+                            
+                            # If we're working with specific months, only add for those months
+                            if payment_months and month not in payment_months:
+                                continue
+                                
+                            # Otherwise add the stock to this month
+                            manual_additions.append({
+                                'Year': year,
+                                'Month': month,
+                                'Month Name': month_names[month],
+                                'Period': f"{month_names[month]} {year}",
+                                'Name': stock,
+                                'Estimated Amount': last_amount,
+                                'Last Payment': last_payment_date,
+                                'Days Since Last': (datetime.now() - last_payment_date).days,
+                                'Is Monthly': cadence == "Monthly",
+                                'Is Manual': True  # Flag as manually added
+                            })
+                
+                # Add manual additions to the calendar
+                if manual_additions:
+                    manual_df = pd.DataFrame(manual_additions)
+                    calendar_df = pd.concat([calendar_df, manual_df], ignore_index=True)
+                    calendar_df = calendar_df.sort_values(['Year', 'Month', 'Name'])
         
         if calendar_df.empty:
             st.warning("Not enough historical data to create reliable payment predictions.")
         else:
             # Summary of stocks with predicted payments
-            st.subheader(f"Stocks with Predicted Payments ({len(recent_stocks)})")
+            st.subheader(f"Stocks with Predicted Payments ({len(calendar_df['Name'].unique())})")
             
             # Find monthly payers
             monthly_payers = []
@@ -457,6 +556,62 @@ def show_dividend_calendar_tab(df, monthly_data, currency, theme, current_date, 
             # Group by month
             months_to_display = calendar_df[['Year', 'Month', 'Month Name', 'Period']].drop_duplicates().sort_values(['Year', 'Month'])
             
+            # Create a heatmap view of monthly dividends
+            heatmap_data = []
+            
+            for _, month_row in months_to_display.iterrows():
+                period = month_row['Period']
+                year = month_row['Year']
+                month = month_row['Month']
+                
+                # Get payments for this month
+                month_payments = calendar_df[calendar_df['Period'] == period].copy()
+                
+                # Calculate total for the month
+                month_total = month_payments['Estimated Amount'].sum()
+                
+                heatmap_data.append({
+                    'Year': year,
+                    'Month': month,
+                    'MonthName': month_names[month],
+                    'Period': period,
+                    'TotalAmount': month_total,
+                    'StockCount': len(month_payments)
+                })
+            
+            heatmap_df = pd.DataFrame(heatmap_data)
+            
+            # Create a heatmap of monthly dividends
+            fig_heatmap = px.imshow(
+                heatmap_df.pivot(index='Year', columns='MonthName', values='TotalAmount'),
+                labels=dict(x="Month", y="Year", color=f"Dividend Amount ({currency})"),
+                x=[month_names[i] for i in range(1, 13)],
+                color_continuous_scale="Blues",
+                template="plotly_white" if theme == "Light" else "plotly_dark",
+                title="Monthly Dividend Heatmap"
+            )
+            
+            # Add text annotations
+            for i, year in enumerate(heatmap_df['Year'].unique()):
+                for month_num in range(1, 13):
+                    month_name = month_names[month_num]
+                    value = heatmap_df[(heatmap_df['Year'] == year) & (heatmap_df['Month'] == month_num)]['TotalAmount'].values
+                    
+                    if len(value) > 0:
+                        value = value[0]
+                        currency_symbol = {'GBP': '£', 'USD': '$', 'EUR': '€'}.get(currency, '£')
+                        fig_heatmap.add_annotation(
+                            x=month_name,
+                            y=year,
+                            text=f"{currency_symbol}{value:.0f}" if value > 0 else "",
+                            showarrow=False,
+                            font=dict(color="black" if value < 50 else "white")
+                        )
+            
+            fig_heatmap.update_layout(height=400)
+            st.plotly_chart(fig_heatmap, use_container_width=True)
+            
+            # Display month by month details
             for _, month_row in months_to_display.iterrows():
                 period = month_row['Period']
                 
@@ -473,7 +628,7 @@ def show_dividend_calendar_tab(df, monthly_data, currency, theme, current_date, 
                 cols = st.columns(3)
                 
                 # Prepare payment data
-                display_df = month_payments[['Name', 'Estimated Amount', 'Confidence', 'Frequency']].copy()
+                display_df = month_payments[['Name', 'Estimated Amount']].copy()
                 display_df['Estimated Amount'] = display_df['Estimated Amount'].apply(lambda x: format_currency(x, currency))
                 
                 # Sort by stock name
@@ -489,20 +644,18 @@ def show_dividend_calendar_tab(df, monthly_data, currency, theme, current_date, 
                     if start_idx < len(display_df):
                         col_stocks = display_df.iloc[start_idx:end_idx]
                         
-                        # Create a color-coded list for each column
+                        # Create a list for each column
                         for _, row in col_stocks.iterrows():
-                            confidence_color = "green" if row['Confidence'] == "High" else "orange" if row['Confidence'] == "Medium" else "red"
                             col.markdown(
                                 f"<div style='padding: 4px 0;'>"
                                 f"<span style='font-weight: bold;'>{row['Name']}</span>: "
                                 f"{row['Estimated Amount']} "
-                                f"<span style='color: {confidence_color};'>({row['Confidence']})</span>"
                                 f"</div>",
                                 unsafe_allow_html=True
                             )
                 
                 st.markdown("---")
-            
+                
             # Table view of all upcoming payments
             st.subheader("All Upcoming Predicted Payments")
             
@@ -512,35 +665,28 @@ def show_dividend_calendar_tab(df, monthly_data, currency, theme, current_date, 
             if 'Last Payment' in table_df.columns:
                 table_df['Last Payment'] = table_df['Last Payment'].dt.strftime('%b %Y')
             
+            # Add indication for manually added stocks
+            if 'Is Manual' in table_df.columns:
+                table_df['Is Manual'] = table_df['Is Manual'].fillna(False)
+                table_df['Source'] = table_df['Is Manual'].apply(lambda x: "Manual" if x else "Auto-detected")
+            
             # Select columns to display
-            display_cols = ['Period', 'Name', 'Estimated Amount', 'Confidence', 'Frequency']
+            display_cols = ['Period', 'Name', 'Estimated Amount']
             if 'Last Payment' in table_df.columns:
                 display_cols.append('Last Payment')
-            if 'Is Monthly' in table_df.columns:
-                display_cols.append('Is Monthly')
+            if 'Source' in table_df.columns:
+                display_cols.append('Source')
                 
             display_table = table_df[display_cols]
             
-            # Allow filtering
-            col1, col2 = st.columns(2)
-            with col1:
-                confidence_filter = st.multiselect(
-                    "Filter by Confidence Level",
-                    options=["High", "Medium", "Low"],
-                    default=["High", "Medium", "Low"]
-                )
-            
-            with col2:
-                stock_filter = st.multiselect(
-                    "Filter by Stock",
-                    options=sorted(calendar_df['Name'].unique()),
-                    default=[]
-                )
+            # Allow filtering by stock
+            stock_filter = st.multiselect(
+                "Filter by Stock",
+                options=sorted(calendar_df['Name'].unique()),
+                default=[]
+            )
             
             filtered_table = display_table.copy()
-            if confidence_filter:
-                filtered_table = filtered_table[filtered_table['Confidence'].isin(confidence_filter)]
-                
             if stock_filter:
                 filtered_table = filtered_table[filtered_table['Name'].isin(stock_filter)]
                 
@@ -548,33 +694,59 @@ def show_dividend_calendar_tab(df, monthly_data, currency, theme, current_date, 
             
             # Monthly summary chart
             monthly_payments = calendar_df.groupby('Period').agg({
-                'Estimated Amount': 'sum'
+                'Estimated Amount': 'sum',
+                'Name': 'nunique'
             }).reset_index()
+            
+            monthly_payments.columns = ['Period', 'Total Amount', 'Stock Count']
             
             # Sort by year and month
             monthly_payments['Year'] = calendar_df.groupby('Period')['Year'].first().values
             monthly_payments['Month'] = calendar_df.groupby('Period')['Month'].first().values
             monthly_payments = monthly_payments.sort_values(['Year', 'Month'])
             
-            fig_monthly_payments = px.bar(
-                monthly_payments,
-                x='Period',
-                y='Estimated Amount',
-                title="Estimated Monthly Dividend Income",
-                template="plotly_white" if theme == "Light" else "plotly_dark",
-                text_auto=True
-            )
+            # Create dual-axis chart for amount and stock count
+            fig = go.Figure()
             
-            fig_monthly_payments.update_traces(
-                marker_color='#4e8df5',
-                textfont=dict(color='black')
-            )
+            fig.add_trace(go.Bar(
+                x=monthly_payments['Period'],
+                y=monthly_payments['Total Amount'],
+                name='Total Amount',
+                marker_color='#1a237e'
+            ))
             
-            fig_monthly_payments.update_layout(
-                height=400,
+            fig.add_trace(go.Scatter(
+                x=monthly_payments['Period'],
+                y=monthly_payments['Stock Count'],
+                name='Stock Count',
+                mode='lines+markers',
+                marker=dict(color='#e91e63'),
+                line=dict(color='#e91e63'),
+                yaxis='y2'
+            ))
+            
+            fig.update_layout(
+                title="Monthly Dividend Income & Stock Count",
                 xaxis=dict(title="Month"),
-                yaxis=dict(title=f"Expected Dividend Income ({currency})"),
-                font=dict(color='black')
+                yaxis=dict(
+                    title=f"Dividend Amount ({currency})",
+                    side="left"
+                ),
+                yaxis2=dict(
+                    title="Number of Stocks",
+                    side="right",
+                    overlaying="y",
+                    showgrid=False
+                ),
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="right",
+                    x=1
+                ),
+                height=500,
+                template="plotly_white" if theme == "Light" else "plotly_dark"
             )
             
-            st.plotly_chart(fig_monthly_payments, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True)
