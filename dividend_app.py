@@ -16,7 +16,6 @@ from tabs.dividend_calendar import show_dividend_calendar_tab
 from tabs.forecast import show_forecast_tab
 
 # Import functions from tab modules to make them available
-from tabs.forecast import statsmodels_sarimax_forecast, holtwinters_forecast
 from tabs.dividend_calendar import create_dividend_calendar, analyze_dividend_cadence
 
 # Filter unnecessary warnings
