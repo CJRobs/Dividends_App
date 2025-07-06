@@ -12,11 +12,8 @@ import warnings
 from tabs.overview import show_overview_tab
 from tabs.monthly_analysis import show_monthly_analysis_tab
 from tabs.stock_analysis import show_stock_analysis_tab
-from tabs.dividend_calendar import show_dividend_calendar_tab
+from tabs.dividend_screener import show_dividend_screener_tab  # Updated import
 from tabs.forecast import show_forecast_tab
-
-# Import functions from tab modules to make them available
-from tabs.dividend_calendar import create_dividend_calendar, analyze_dividend_cadence
 
 # Filter unnecessary warnings
 class WarningFilter(io.StringIO):
@@ -146,11 +143,11 @@ def main():
     # Navigation in sidebar
     st.sidebar.title("Navigation")
     
-    # Use radio buttons for navigation instead of tabs
+    # Use radio buttons for navigation instead of tabs - Updated to include Dividend Screener
     page = st.sidebar.radio(
         "Select Page",
         ["📈 Overview", "📅 Monthly Analysis", "🏢 Stock Analysis", 
-         "📆 Dividend Calendar", "🔮 Forecast"]
+         "🔍 Dividend Screener", "🔮 Forecast"]  # Updated navigation
     )
     
     # Load and preprocess data with error handling
@@ -188,15 +185,15 @@ def main():
         'get_month_order': get_month_order
     }
     
-    # Main content based on selection
+    # Main content based on selection - Updated to include Dividend Screener
     if page == "📈 Overview":
         show_overview_tab(**common_params)
     elif page == "📅 Monthly Analysis":
         show_monthly_analysis_tab(**common_params)
     elif page == "🏢 Stock Analysis":
         show_stock_analysis_tab(**common_params)
-    elif page == "📆 Dividend Calendar":
-        show_dividend_calendar_tab(**common_params)
+    elif page == "🔍 Dividend Screener":  # Updated to call dividend screener
+        show_dividend_screener_tab(**common_params)
     elif page == "🔮 Forecast":
         show_forecast_tab(**common_params)
 
