@@ -14,10 +14,7 @@ Modules:
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Any, Dict
-    import pandas as pd
-    from datetime import datetime
-    from config import AppConfig
+    pass
 
 # Import tab modules for easier access
 from tabs.overview import show_overview_tab
@@ -27,11 +24,11 @@ from tabs.dividend_screener import show_dividend_screener_tab
 from tabs.forecast import show_forecast_tab
 
 __all__ = [
-    'show_overview_tab',
-    'show_monthly_analysis_tab',
-    'show_stock_analysis_tab',
-    'show_dividend_screener_tab',
-    'show_forecast_tab'
+    "show_overview_tab",
+    "show_monthly_analysis_tab",
+    "show_stock_analysis_tab",
+    "show_dividend_screener_tab",
+    "show_forecast_tab",
 ]
 
 __version__ = "2.0.0"
