@@ -130,52 +130,101 @@ def show_monthly_analysis_tab(df, monthly_data, currency, theme, current_date, c
     # Dividends by Company by Month (stacked bar chart)
     st.subheader("Dividends by Company by Month")
     
-    # Get unique companies
+    # Get unique companies and months
     companies = sorted(df['Name'].unique())
+    months = sorted(df['MonthName'].unique(), key=lambda x: month_order.index(x))
     
-    # Stock/company selection dropdown
-    selected_stocks = st.multiselect(
-        "Select Companies to View (leave empty to see all)",
-        options=companies,
-        default=[]
-    )
+    # Add month filter option
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Stock/company selection dropdown
+        selected_stocks = st.multiselect(
+            "Select Companies to View (leave empty to see all)",
+            options=companies,
+            default=[]
+        )
+    
+    with col2:
+        # Month selection dropdown
+        selected_month = st.selectbox(
+            "Select Month to View (leave as 'All Months' to see all)",
+            options=['All Months'] + months,
+            index=0
+        )
     
     # Filter data based on selection
+    filtered_df = df.copy()
+    
+    # Apply company filter
     if selected_stocks:
-        filtered_df = df[df['Name'].isin(selected_stocks)]
-    else:
-        filtered_df = df
+        filtered_df = filtered_df[filtered_df['Name'].isin(selected_stocks)]
+    
+    # Apply month filter
+    if selected_month != 'All Months':
+        filtered_df = filtered_df[filtered_df['MonthName'] == selected_month]
     
     # Group by month and company
-    monthly_by_company = filtered_df.groupby(['MonthName', 'Month', 'Name'])['Total'].sum().reset_index()
-    monthly_by_company['MonthNum'] = monthly_by_company['MonthName'].apply(lambda x: month_order.index(x))
-    monthly_by_company = monthly_by_company.sort_values('MonthNum')
-    
-    # Create stacked bar chart
-    fig_monthly_company = px.bar(
-        monthly_by_company,
-        x='MonthName',
-        y='Total',
-        color='Name',
-        title="Monthly Dividends by Company",
-        template="plotly_white" if theme == "Light" else "plotly_dark",
-        labels={"Total": f"Dividend Amount ({currency})", "MonthName": "Month", "Name": "Company"}
-    )
-    
-    fig_monthly_company.update_layout(
-        height=500,
-        xaxis=dict(
-            categoryorder='array',
-            categoryarray=month_order,
-            title="Month"
-        ),
-        yaxis=dict(title=f"Dividend Amount ({currency})"),
-        legend=dict(
-            title="Company",
-            orientation="v"
-        ),
-        barmode='stack'
-    )
+    if selected_month == 'All Months':
+        # Show all months
+        monthly_by_company = filtered_df.groupby(['MonthName', 'Month', 'Name'])['Total'].sum().reset_index()
+        monthly_by_company['MonthNum'] = monthly_by_company['MonthName'].apply(lambda x: month_order.index(x))
+        monthly_by_company = monthly_by_company.sort_values('MonthNum')
+        
+        # Create stacked bar chart
+        fig_monthly_company = px.bar(
+            monthly_by_company,
+            x='MonthName',
+            y='Total',
+            color='Name',
+            title="Monthly Dividends by Company",
+            template="plotly_white" if theme == "Light" else "plotly_dark",
+            labels={"Total": f"Dividend Amount ({currency})", "MonthName": "Month", "Name": "Company"}
+        )
+        
+        fig_monthly_company.update_layout(
+            height=500,
+            xaxis=dict(
+                categoryorder='array',
+                categoryarray=month_order,
+                title="Month"
+            ),
+            yaxis=dict(title=f"Dividend Amount ({currency})"),
+            legend=dict(
+                title="Company",
+                orientation="v"
+            ),
+            barmode='stack'
+        )
+    else:
+        # Show specific month across all years
+        monthly_by_company = filtered_df.groupby(['Year', 'Name'])['Total'].sum().reset_index()
+        monthly_by_company = monthly_by_company.sort_values('Year')
+        
+        # Create stacked bar chart for specific month across years
+        fig_monthly_company = px.bar(
+            monthly_by_company,
+            x='Year',
+            y='Total',
+            color='Name',
+            title=f"{selected_month} Dividends by Company (All Years)",
+            template="plotly_white" if theme == "Light" else "plotly_dark",
+            labels={"Total": f"Dividend Amount ({currency})", "Year": "Year", "Name": "Company"}
+        )
+        
+        fig_monthly_company.update_layout(
+            height=500,
+            xaxis=dict(
+                type='category',
+                title="Year"
+            ),
+            yaxis=dict(title=f"Dividend Amount ({currency})"),
+            legend=dict(
+                title="Company",
+                orientation="v"
+            ),
+            barmode='stack'
+        )
     
     # Ensure all text is black
     fig_monthly_company.update_layout(

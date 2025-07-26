@@ -15,6 +15,7 @@ import warnings # To suppress specific statsmodels warnings if needed
 # --- Model Dependencies ---
 STATSMODELS_INSTALLED = False
 PROPHET_INSTALLED = False
+SKTIME_INSTALLED = False
 
 try:
     from statsmodels.tsa.statespace.sarimax import SARIMAX
@@ -34,6 +35,14 @@ try:
     logging.getLogger('prophet').setLevel(logging.WARNING)
     logging.getLogger('cmdstanpy').setLevel(logging.WARNING)
     PROPHET_INSTALLED = True
+except ImportError:
+    pass
+
+try:
+    from sktime.forecasting.theta import ThetaForecaster
+    from sktime.forecasting.ets import AutoETS
+    from sktime.forecasting.fbprophet import Prophet as SktimeProphet
+    SKTIME_INSTALLED = True
 except ImportError:
     pass
 
@@ -207,6 +216,69 @@ def run_holtwinters( # Definition remains the same
     except Exception as e: st.error(f"HW failed: {e}"); st.error(traceback.format_exc()); return None, False, f"Failed: {e}"
 
 
+
+
+@st.cache_data(ttl=3600)
+def run_theta_forecaster(
+    data: pd.DataFrame, forecast_months: int
+) -> Tuple[Optional[pd.DataFrame], bool, Optional[str]]:
+    """Runs Theta forecasting using sktime - reliable and robust."""
+    if not SKTIME_INSTALLED:
+        st.error("`sktime` is required. Please install it (`pip install sktime`).")
+        return None, False, "sktime not installed"
+    
+    model_params_str = "Theta Forecaster - Statistical with trend decomposition"
+    try:
+        # Prepare data for sktime - use simple integer index to avoid frequency issues
+        ts_data = data['Total'].astype(float).reset_index(drop=True)
+        
+        if len(ts_data) < 6:
+            st.warning("Theta Forecaster: Less than 6 data points may limit model performance.")
+        
+        # Create and fit Theta forecaster with minimal parameters
+        forecaster = ThetaForecaster(sp=12)  # Only specify seasonal period
+        forecaster.fit(ts_data)
+        
+        # Generate forecast
+        fh = list(range(1, forecast_months + 1))  # Forecast horizon
+        forecast_values = forecaster.predict(fh)
+        
+        # Generate forecast dates to match other models (use month-end)
+        last_date = data['Date'].iloc[-1]
+        forecast_dates = pd.date_range(start=last_date + pd.DateOffset(months=1), periods=forecast_months, freq='M')
+        
+        # Calculate prediction intervals
+        try:
+            pred_ints = forecaster.predict_interval(fh, coverage=0.95)
+            lower_ci = pred_ints.iloc[:, 0].values
+            upper_ci = pred_ints.iloc[:, 1].values
+        except:
+            # Fallback: use historical volatility
+            historical_std = ts_data.std()
+            lower_ci = forecast_values.values - 1.96 * historical_std
+            upper_ci = forecast_values.values + 1.96 * historical_std
+        
+        # Clip negative values
+        forecast_vals_clipped = np.clip(forecast_values.values, 0, None)
+        lower_ci_clipped = np.clip(lower_ci, 0, None)
+        upper_ci_clipped = np.clip(upper_ci, 0, None)
+        
+        # Create forecast DataFrame
+        forecast_df = pd.DataFrame({
+            'Date': forecast_dates,
+            'Forecast': forecast_vals_clipped,
+            'Lower_CI': lower_ci_clipped,
+            'Upper_CI': upper_ci_clipped
+        })
+        
+        return forecast_df, True, model_params_str
+        
+    except Exception as e:
+        st.error(f"Theta Forecaster failed: {e}")
+        st.error(traceback.format_exc())
+        return None, False, f"Failed: {e}"
+
+
 # --- Display Components ---
 # (No changes needed in display functions)
 def display_forecast_plot(*args, **kwargs):
@@ -330,6 +402,7 @@ def show_forecast_tab(
     available_tabs = []
     if STATSMODELS_INSTALLED: available_tabs.extend(["SARIMAX", "Holt-Winters"])
     if PROPHET_INSTALLED: available_tabs.append("Prophet")
+    if SKTIME_INSTALLED: available_tabs.append("Theta Forecaster")
     
     # Add ensemble tab if we have multiple models
     if len(available_tabs) > 1: available_tabs.append("Ensemble")
@@ -369,6 +442,14 @@ def show_forecast_tab(
             damped = hw_cols[2].checkbox("Damp Trend?", True, key="hw_damped_check_v3")
             run_and_display(run_holtwinters, "Holt-Winters", trend=trend, seasonal=seasonal, damped=damped)
 
+
+    if "Theta Forecaster" in tab_map:
+        with tab_map["Theta Forecaster"]:
+            st.markdown("**Theta Forecaster** - Advanced statistical forecasting with trend decomposition.")
+            st.info("Uses the Theta method - excellent for data with trends and proven performance in forecasting competitions.")
+            st.caption("Fast, reliable, and particularly good for financial time series like dividends.")
+            run_and_display(run_theta_forecaster, "Theta Forecaster")
+
     if "Ensemble" in tab_map:
         with tab_map["Ensemble"]:
             st.markdown("**Ensemble Forecast** - Averages predictions from all available models for improved accuracy.")
@@ -396,6 +477,12 @@ def show_forecast_tab(
                     if prophet_success and prophet_df is not None:
                         ensemble_forecasts.append(prophet_df[['Date', 'Forecast']].copy())
                         model_names.append("Prophet")
+                
+                if SKTIME_INSTALLED:
+                    theta_df, theta_success, _ = run_theta_forecaster(training_data.copy(), forecast_months)
+                    if theta_success and theta_df is not None:
+                        ensemble_forecasts.append(theta_df[['Date', 'Forecast']].copy())
+                        model_names.append("Theta Forecaster")
             
             if len(ensemble_forecasts) < 2:
                 st.warning("Ensemble requires at least 2 successful models. Not enough models available.")
@@ -403,25 +490,48 @@ def show_forecast_tab(
                 st.success(f"Successfully combined {len(ensemble_forecasts)} models: {', '.join(model_names)}")
                 
                 # Create ensemble by averaging forecasts
-                ensemble_df = ensemble_forecasts[0].copy()
-                for i, other_df in enumerate(ensemble_forecasts[1:], 1):
-                    ensemble_df = ensemble_df.merge(other_df, on='Date', suffixes=('', f'_{i}'))
+                # Normalize dates by aligning to month/year (more robust than exact date matching)
+                normalized_forecasts = []
+                for i, df in enumerate(ensemble_forecasts):
+                    df_clean = df[['Date', 'Forecast']].copy()
+                    # Create a month-year key for alignment
+                    df_clean['Date'] = pd.to_datetime(df_clean['Date'])
+                    df_clean['MonthYear'] = df_clean['Date'].dt.to_period('M')
+                    df_clean = df_clean.rename(columns={'Forecast': f'Forecast_{i}'})
+                    df_clean = df_clean[['MonthYear', f'Forecast_{i}']].copy()
+                    normalized_forecasts.append(df_clean)
+                
+                # Start with the first forecast
+                ensemble_df = normalized_forecasts[0].copy()
+                
+                # Merge all other forecasts using MonthYear periods
+                for i, other_df in enumerate(normalized_forecasts[1:], 1):
+                    ensemble_df = ensemble_df.merge(other_df, on='MonthYear', how='inner')
+                
+                # Convert MonthYear back to proper dates (use month-end)
+                ensemble_df['Date'] = ensemble_df['MonthYear'].dt.to_timestamp('M')
                 
                 # Calculate average forecast
-                forecast_cols = [col for col in ensemble_df.columns if 'Forecast' in col]
-                ensemble_df['Forecast'] = ensemble_df[forecast_cols].mean(axis=1)
-                ensemble_df = ensemble_df[['Date', 'Forecast']]
+                forecast_cols = [col for col in ensemble_df.columns if col.startswith('Forecast_')]
                 
-                # Add confidence intervals (use standard deviation of model predictions as uncertainty)
-                if len(forecast_cols) > 1:
-                    temp_df = ensemble_df.copy()
-                    for i, other_df in enumerate(ensemble_forecasts):
-                        temp_df = temp_df.merge(other_df, on='Date', suffixes=('', f'_temp_{i}'))
+                if len(ensemble_df) > 0 and len(forecast_cols) > 0:
+                    ensemble_df['Forecast'] = ensemble_df[forecast_cols].mean(axis=1)
                     
-                    forecast_matrix = temp_df[[col for col in temp_df.columns if 'Forecast' in col and col != 'Forecast']]
-                    std_dev = forecast_matrix.std(axis=1)
-                    ensemble_df['Lower_CI'] = ensemble_df['Forecast'] - 1.96 * std_dev
-                    ensemble_df['Upper_CI'] = ensemble_df['Forecast'] + 1.96 * std_dev
+                    # Add confidence intervals using standard deviation of predictions
+                    if len(forecast_cols) > 1:
+                        std_dev = ensemble_df[forecast_cols].std(axis=1)
+                        ensemble_df['Lower_CI'] = ensemble_df['Forecast'] - 1.96 * std_dev
+                        ensemble_df['Upper_CI'] = ensemble_df['Forecast'] + 1.96 * std_dev
+                    else:
+                        # Single model - use simple CI
+                        ensemble_df['Lower_CI'] = ensemble_df['Forecast'] * 0.8
+                        ensemble_df['Upper_CI'] = ensemble_df['Forecast'] * 1.2
+                    
+                    # Final ensemble dataframe
+                    ensemble_df = ensemble_df[['Date', 'Forecast', 'Lower_CI', 'Upper_CI']].copy()
+                else:
+                    st.error("Ensemble creation failed - unable to align model forecasts.")
+                    return
                 
                 # Display ensemble forecast
                 display_forecast_plot(cleaned_data, ensemble_df, currency, theme, "Ensemble", f"Average of {len(model_names)} models")

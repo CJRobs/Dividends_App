@@ -27,7 +27,7 @@ def show_stock_analysis_tab(df, monthly_data, currency, theme, current_date, cur
         Function to format currency values
     """
     # Create subtabs for different analysis views
-    analysis_tabs = st.tabs(["Overall Analysis", "Individual Company Analysis"])
+    analysis_tabs = st.tabs(["Time Period Analysis", "Individual Company Analysis"])
     
     with analysis_tabs[0]:
         # Add time period selection
@@ -37,7 +37,7 @@ def show_stock_analysis_tab(df, monthly_data, currency, theme, current_date, cur
             horizontal=True
         )
         
-        # Stock breakdown - aggregated by selected time period
+        # Create totals by time period (not by individual stocks)
         if time_period == "Monthly":
             time_data = df.copy()
             # Create sorting field for chronological order
@@ -45,6 +45,10 @@ def show_stock_analysis_tab(df, monthly_data, currency, theme, current_date, cur
                                                time_data['Month'].astype(str) + '-01')
             time_data['PeriodName'] = time_data['Period'].dt.strftime('%b %Y')
             time_data['PeriodKey'] = time_data['Period'].dt.strftime('%Y-%m')
+            
+            # Group by period only (sum all stocks for each period)
+            period_totals = time_data.groupby(['Period', 'PeriodName', 'PeriodKey'])['Total'].sum().reset_index()
+            
         elif time_period == "Quarterly":
             time_data = df.copy()
             # Extract quarter number and year
@@ -55,76 +59,65 @@ def show_stock_analysis_tab(df, monthly_data, currency, theme, current_date, cur
                                                ((time_data['QuarterNum'] * 3) - 2).astype(str) + '-01')
             time_data['PeriodName'] = time_data['Quarter']
             time_data['PeriodKey'] = time_data['QuarterYear'].astype(str) + '-Q' + time_data['QuarterNum'].astype(str)
+            
+            # Group by period only (sum all stocks for each period)
+            period_totals = time_data.groupby(['Period', 'PeriodName', 'PeriodKey'])['Total'].sum().reset_index()
+            
         else:  # Yearly
             time_data = df.copy()
             time_data['Period'] = pd.to_datetime(time_data['Year'].astype(str) + '-01-01')
             time_data['PeriodName'] = time_data['Year'].astype(str)
             time_data['PeriodKey'] = time_data['Year'].astype(str)
-        
-        # Group by period and stock
-        period_stock_data = time_data.groupby(['Period', 'PeriodName', 'PeriodKey', 'Name'])['Total'].sum().reset_index()
+            
+            # Group by period only (sum all stocks for each period)
+            period_totals = time_data.groupby(['Period', 'PeriodName', 'PeriodKey'])['Total'].sum().reset_index()
         
         # Sort chronologically by the Period datetime
-        period_stock_data = period_stock_data.sort_values('Period')
+        period_totals = period_totals.sort_values('Period')
         
-        # Get ordered period names based on chronological sorting
-        ordered_periods = period_stock_data['PeriodName'].unique()
-        
-        # Create pivot and unpivot for plotting
-        period_pivot = period_stock_data.pivot(
-            index='PeriodName', 
-            columns='Name', 
-            values='Total'
-        ).fillna(0)
-        
-        # Ensure the index is in the right chronological order
-        period_pivot = period_pivot.reindex(ordered_periods)
-        
-        # Convert to long format for Plotly
-        period_long = pd.melt(
-            period_pivot.reset_index(), 
-            id_vars=['PeriodName'],
-            var_name='Stock',
-            value_name='Total'
-        )
-        
-        # Create stacked bar chart showing all stocks
+        # Create bar chart showing total dividends by time period
         fig_period = px.bar(
-            period_long,
+            period_totals,
             x='PeriodName',
             y='Total',
-            color='Stock',
-            title=f"{time_period} Dividends by Stock",
+            title=f"Total {time_period} Dividend Income",
             template="plotly_white" if theme == "Light" else "plotly_dark",
-            labels={"Total": f"Dividend Amount ({currency})", "PeriodName": "Time Period"}
+            labels={"Total": f"Dividend Amount ({currency})", "PeriodName": "Time Period"},
+            color='Total',
+            color_continuous_scale='Blues'
         )
         
         fig_period.update_layout(
             height=600,
-            barmode='stack',
             xaxis=dict(
                 title="Time Period",
-                tickangle=-45,
-                categoryorder='array',
-                categoryarray=ordered_periods
+                tickangle=-45
             ),
             yaxis=dict(title=f"Dividend Amount ({currency})"),
-            legend=dict(
-                title="Stock"
-            ),
+            showlegend=False,
             font=dict(color='black')
+        )
+        
+        # Add value labels on bars
+        fig_period.update_traces(
+            texttemplate='%{y:,.0f}',
+            textposition='outside',
+            textfont=dict(color='black')
         )
         
         st.plotly_chart(fig_period, use_container_width=True)
         
-        # Complete pie chart of all dividends
+        # Add pie chart showing distribution by stocks
+        st.subheader("Portfolio Distribution by Stock")
+        
+        # Calculate stock totals for pie chart
         stock_totals = df.groupby('Name')['Total'].sum().reset_index()
         stock_totals = stock_totals.sort_values('Total', ascending=False)
         
         # Calculate percentages
         stock_totals['Percentage'] = (stock_totals['Total'] / stock_totals['Total'].sum()) * 100
         
-        # Full pie chart
+        # Create pie chart
         fig_pie = px.pie(
             stock_totals,
             values='Total',
@@ -148,27 +141,119 @@ def show_stock_analysis_tab(df, monthly_data, currency, theme, current_date, cur
         
         st.plotly_chart(fig_pie, use_container_width=True)
         
-        # Stock table
-        st.subheader("Stock Breakdown")
+        # Growth analysis chart
+        if len(period_totals) > 1:
+            st.subheader(f"{time_period} Growth Analysis")
+            
+            # Calculate period-over-period growth
+            period_totals_sorted = period_totals.sort_values('Period').copy()
+            period_totals_sorted['Previous'] = period_totals_sorted['Total'].shift(1)
+            period_totals_sorted['Growth'] = (period_totals_sorted['Total'] - period_totals_sorted['Previous']) / period_totals_sorted['Previous'] * 100
+            period_totals_sorted['Growth'] = period_totals_sorted['Growth'].fillna(0)
+            
+            # Create growth chart
+            fig_growth = go.Figure()
+            
+            # Add growth bars
+            colors = ['rgba(76, 175, 80, 0.7)' if x >= 0 else 'rgba(239, 83, 80, 0.7)' for x in period_totals_sorted['Growth']]
+            
+            fig_growth.add_trace(go.Bar(
+                x=period_totals_sorted['PeriodName'],
+                y=period_totals_sorted['Growth'],
+                marker_color=colors,
+                name='Growth %',
+                text=[f"{x:.1f}%" for x in period_totals_sorted['Growth']],
+                textposition='outside'
+            ))
+            
+            fig_growth.update_layout(
+                title=f"{time_period} Growth Rate (%)",
+                template="plotly_white" if theme == "Light" else "plotly_dark",
+                xaxis=dict(
+                    title="Time Period",
+                    tickangle=-45
+                ),
+                yaxis=dict(title="Growth Rate (%)"),
+                height=400,
+                showlegend=False
+            )
+            
+            st.plotly_chart(fig_growth, use_container_width=True)
+        
+        # Time period breakdown table
+        st.subheader(f"{time_period} Breakdown")
         
         # Format the table
-        table_df = stock_totals.copy()
+        table_df = period_totals.copy()
         table_df['Rank'] = range(1, len(table_df) + 1)
-        table_df['Total'] = table_df['Total'].apply(lambda x: format_currency(x, currency))
-        table_df['Percentage'] = table_df['Percentage'].apply(lambda x: f"{x:.1f}%")
-        table_df = table_df[['Rank', 'Name', 'Total', 'Percentage']]
+        table_df['FormattedTotal'] = table_df['Total'].apply(lambda x: format_currency(x, currency))
         
-        # Add search/filter capability
-        search_term = st.text_input("Search stocks", "", key="overall_search")
-        if search_term:
-            table_df = table_df[table_df['Name'].str.contains(search_term, case=False)]
+        # Calculate percentage of total
+        total_sum = table_df['Total'].sum()
+        table_df['Percentage'] = (table_df['Total'] / total_sum * 100).apply(lambda x: f"{x:.1f}%")
+        
+        # Add growth rate if available
+        if 'Growth' in period_totals_sorted.columns:
+            growth_dict = dict(zip(period_totals_sorted['PeriodName'], period_totals_sorted['Growth']))
+            table_df['Growth'] = table_df['PeriodName'].map(growth_dict).fillna(0).apply(lambda x: f"{x:.1f}%")
+            display_cols = ['Rank', 'PeriodName', 'FormattedTotal', 'Percentage', 'Growth']
+        else:
+            display_cols = ['Rank', 'PeriodName', 'FormattedTotal', 'Percentage']
+        
+        table_df = table_df[display_cols]
+        table_df = table_df.rename(columns={
+            'PeriodName': 'Period',
+            'FormattedTotal': 'Total Amount',
+            'Percentage': '% of Total'
+        })
         
         st.dataframe(table_df, use_container_width=True, height=400)
         
-        # Concentration Risk Analysis
-        st.subheader("Concentration Risk Analysis")
+        # Summary statistics
+        st.subheader("Summary Statistics")
         
-        # Calculate concentration metrics
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            avg_amount = period_totals['Total'].mean()
+            st.metric(
+                "Average Amount",
+                format_currency(avg_amount, currency)
+            )
+        
+        with col2:
+            max_amount = period_totals['Total'].max()
+            best_period = period_totals[period_totals['Total'] == max_amount]['PeriodName'].iloc[0]
+            st.metric(
+                "Best Period",
+                best_period,
+                delta=format_currency(max_amount, currency)
+            )
+        
+        with col3:
+            if len(period_totals) > 1 and 'Growth' in period_totals_sorted.columns:
+                avg_growth = period_totals_sorted['Growth'].mean()
+                st.metric(
+                    "Avg Growth Rate",
+                    f"{avg_growth:.1f}%"
+                )
+            else:
+                st.metric(
+                    "Total Periods",
+                    str(len(period_totals))
+                )
+        
+        with col4:
+            total_all = period_totals['Total'].sum()
+            st.metric(
+                "Total Income",
+                format_currency(total_all, currency)
+            )
+        
+        # Stock concentration risk analysis
+        st.subheader("Stock Concentration Risk Analysis")
+        
+        # Calculate concentration metrics using stock_totals from pie chart
         top_10_pct = stock_totals.head(10)['Percentage'].sum()
         top_5_pct = stock_totals.head(5)['Percentage'].sum()
         top_3_pct = stock_totals.head(3)['Percentage'].sum()
