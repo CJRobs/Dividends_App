@@ -1,0 +1,10 @@
+Action,Time,ISIN,Ticker,Name,No. of shares,Price / share,Currency (Price / share),Exchange rate,Total,Currency (Total),Withholding tax,Currency (Withholding tax)
+Dividend (Dividend),2025-07-02 12:15:29,IE00B3XXRP09,VUSA,"Vanguard S&P 500 (Dist)",46.0000000000,0.227797,GBP,Not available,10.48,"GBP",-0.00,GBP
+Dividend (Dividend),2025-07-02 12:55:32,IE00BZ163L38,VEMT,"Vanguard USD Emerging Markets Government Bond (Dist)",60.0000000000,0.138502,GBP,Not available,8.31,"GBP",0.00,GBP
+Dividend (Dividend),2025-07-08 13:01:00,IE000U9J8HX9,JEQP,"JPMorgan Nasdaq Equity Premium Income Active (Dist)",40.0000000000,26.940572,GBX,Not available,10.78,"GBP",0.00,GBX
+Dividend (Dividend),2025-07-08 13:01:38,IE0003UVYC20,JEGP,"JPMorgan Global Equity Premium Income Active (Dist)",100.0000000000,24.717535,GBX,Not available,24.72,"GBP",-0.00,GBX
+Dividend (Dividend),2025-07-10 13:36:13,US01609W1027,BABA,"Alibaba",11.0000000000,1.050000,USD,Not available,8.49,"GBP",0.00,USD
+Dividend (Dividend),2025-07-10 13:45:01,US9256521090,VICI,"VICI Properties",40.0000000000,0.367625,USD,Not available,10.80,"GBP",2.60,USD
+Dividend (Dividend),2025-07-10 13:46:44,GB00BLDYK618,SMT,"Scottish Mortgage Investment Trust",40.0000000000,2.780000,GBX,Not available,1.11,"GBP",0.00,GBX
+Dividend (Dividend),2025-07-10 13:50:51,US01609W1027,BABA,"Alibaba",11.0000000000,0.950000,USD,Not available,7.68,"GBP",0.00,USD
+Dividend (Dividend),2025-07-10 14:13:44,US79466L3024,CRM,"Salesforce",8.0000000000,0.353600,USD,Not available,2.08,"GBP",0.50,USD

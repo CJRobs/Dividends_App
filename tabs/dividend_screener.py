@@ -1,3 +1,9 @@
+"""Dividend Screener Tab Module.
+
+This module provides functionality for screening dividend stocks
+using Alpha Vantage API data with comprehensive analysis tools.
+"""
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -7,19 +13,31 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import time
 from datetime import datetime, timedelta
+from typing import Optional, Dict, Any, List
 import json
 
-# Alpha Vantage API configuration
-ALPHA_VANTAGE_API_KEY = "7SJSMIH29T07IB8L"
-BASE_URL = "https://www.alphavantage.co/query"
+from config import AppConfig, load_config
+from utils import handle_api_error, create_loading_spinner, validate_dataframe
 
-# Rate limiting for API calls
-def rate_limit():
-    """Add delay between API calls to respect rate limits"""
-    time.sleep(0.2)  # 200ms delay between calls
+def rate_limit(delay: float = None) -> None:
+    """Add delay between API calls to respect rate limits.
+    
+    Args:
+        delay: Custom delay in seconds, uses config default if None
+    """
+    config = load_config()
+    time.sleep(delay or config.api_rate_limit_delay)
 
-def safe_float(value, default=0):
-    """Safely convert a value to float, handling None and string 'None'"""
+def safe_float(value: Any, default: float = 0.0) -> float:
+    """Safely convert a value to float, handling None and string 'None'.
+    
+    Args:
+        value: Value to convert to float
+        default: Default value if conversion fails
+        
+    Returns:
+        Float value or default if conversion fails
+    """
     if value is None or value == 'None' or value == '':
         return default
     try:
@@ -27,42 +45,71 @@ def safe_float(value, default=0):
     except (ValueError, TypeError):
         return default
 
-@st.cache_data(ttl=3600)  # Cache for 1 hour
-def get_company_overview(symbol):
-    """Get company overview data from Alpha Vantage"""
+@st.cache_data(ttl=3600, show_spinner="Fetching company overview...")
+def get_company_overview(symbol: str) -> Optional[Dict[str, Any]]:
+    """Get company overview data from Alpha Vantage.
+    
+    Args:
+        symbol: Stock symbol to fetch data for
+        
+    Returns:
+        Dictionary containing company overview data or None if failed
+    """
+    config = load_config()
+    
     try:
         params = {
             'function': 'OVERVIEW',
-            'symbol': symbol,
-            'apikey': ALPHA_VANTAGE_API_KEY
+            'symbol': symbol.upper(),
+            'apikey': config.alpha_vantage_api_key
         }
         
         rate_limit()
-        response = requests.get(BASE_URL, params=params)
+        response = requests.get(config.api_base_url, params=params, timeout=30)
+        response.raise_for_status()
         data = response.json()
         
-        if 'Symbol' in data:
+        if 'Symbol' in data and data.get('Symbol'):
             return data
+        elif 'Error Message' in data:
+            st.error(f"API Error: {data['Error Message']}")
+            return None
+        elif 'Note' in data:
+            st.warning(f"API Notice: {data['Note']}")
+            return None
         else:
             st.warning(f"No data found for symbol: {symbol}")
             return None
             
+    except requests.exceptions.RequestException as e:
+        handle_api_error(e, f"Company overview fetch for {symbol}")
+        return None
     except Exception as e:
         st.error(f"Error fetching data for {symbol}: {str(e)}")
         return None
 
-@st.cache_data(ttl=3600)
-def get_dividend_data(symbol):
-    """Get dividend data from Alpha Vantage"""
+@st.cache_data(ttl=3600, show_spinner="Fetching dividend data...")
+def get_dividend_data(symbol: str) -> Optional[Dict[str, Any]]:
+    """Get dividend data from Alpha Vantage.
+    
+    Args:
+        symbol: Stock symbol to fetch dividend data for
+        
+    Returns:
+        Dictionary containing dividend time series data or None if failed
+    """
+    config = load_config()
+    
     try:
         params = {
             'function': 'TIME_SERIES_MONTHLY_ADJUSTED',
-            'symbol': symbol,
-            'apikey': ALPHA_VANTAGE_API_KEY
+            'symbol': symbol.upper(),
+            'apikey': config.alpha_vantage_api_key
         }
         
         rate_limit()
-        response = requests.get(BASE_URL, params=params)
+        response = requests.get(config.api_base_url, params=params, timeout=30)
+        response.raise_for_status()
         data = response.json()
         
         if 'Monthly Adjusted Time Series' in data:
@@ -74,19 +121,29 @@ def get_dividend_data(symbol):
         st.error(f"Error fetching dividend data for {symbol}: {str(e)}")
         return None
 
-@st.cache_data(ttl=3600)
-def get_daily_price_data(symbol):
-    """Get daily price data from Alpha Vantage"""
+@st.cache_data(ttl=3600, show_spinner="Fetching price data...")
+def get_daily_price_data(symbol: str) -> Optional[Dict[str, Any]]:
+    """Get daily price data from Alpha Vantage.
+    
+    Args:
+        symbol: Stock symbol to fetch price data for
+        
+    Returns:
+        Dictionary containing daily price time series data or None if failed
+    """
+    config = load_config()
+    
     try:
         params = {
             'function': 'TIME_SERIES_DAILY',
-            'symbol': symbol,
-            'apikey': ALPHA_VANTAGE_API_KEY,
+            'symbol': symbol.upper(),
+            'apikey': config.alpha_vantage_api_key,
             'outputsize': 'full'
         }
         
         rate_limit()
-        response = requests.get(BASE_URL, params=params)
+        response = requests.get(config.api_base_url, params=params, timeout=30)
+        response.raise_for_status()
         data = response.json()
         
         if 'Time Series (Daily)' in data:
@@ -102,14 +159,16 @@ def get_daily_price_data(symbol):
 def get_income_statement(symbol):
     """Get income statement data from Alpha Vantage"""
     try:
+        config = load_config()
         params = {
             'function': 'INCOME_STATEMENT',
             'symbol': symbol,
-            'apikey': ALPHA_VANTAGE_API_KEY
+            'apikey': config.alpha_vantage_api_key
         }
         
         rate_limit()
-        response = requests.get(BASE_URL, params=params)
+        response = requests.get(config.api_base_url, params=params, timeout=30)
+        response.raise_for_status()
         data = response.json()
         
         if 'annualReports' in data:
@@ -125,14 +184,16 @@ def get_income_statement(symbol):
 def get_balance_sheet(symbol):
     """Get balance sheet data from Alpha Vantage"""
     try:
+        config = load_config()
         params = {
             'function': 'BALANCE_SHEET',
             'symbol': symbol,
-            'apikey': ALPHA_VANTAGE_API_KEY
+            'apikey': config.alpha_vantage_api_key
         }
         
         rate_limit()
-        response = requests.get(BASE_URL, params=params)
+        response = requests.get(config.api_base_url, params=params, timeout=30)
+        response.raise_for_status()
         data = response.json()
         
         if 'annualReports' in data:
@@ -148,14 +209,16 @@ def get_balance_sheet(symbol):
 def get_cash_flow(symbol):
     """Get cash flow statement data from Alpha Vantage"""
     try:
+        config = load_config()
         params = {
             'function': 'CASH_FLOW',
             'symbol': symbol,
-            'apikey': ALPHA_VANTAGE_API_KEY
+            'apikey': config.alpha_vantage_api_key
         }
         
         rate_limit()
-        response = requests.get(BASE_URL, params=params)
+        response = requests.get(config.api_base_url, params=params, timeout=30)
+        response.raise_for_status()
         data = response.json()
         
         if 'annualReports' in data:

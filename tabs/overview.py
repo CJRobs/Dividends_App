@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+from utils.chart_themes import create_bar_chart, apply_chart_theme, create_line_chart
 
 def show_overview_tab(df, monthly_data, currency, theme, current_date, current_year, current_month, format_currency, **kwargs):
     """
@@ -81,19 +82,13 @@ def show_overview_tab(df, monthly_data, currency, theme, current_date, current_y
     # Yearly summary chart - Excluding current year as incomplete
     yearly_totals = df.groupby('Year')['Total'].sum().reset_index()
     
-    fig_yearly = px.bar(
+    fig_yearly = create_bar_chart(
         yearly_totals,
-        x='Year',
-        y='Total',
-        title="Yearly Dividend Totals",
-        template="plotly_white" if theme == "Light" else "plotly_dark",
+        x_col='Year',
+        y_col='Total',
+        title="📈 Yearly Dividend Totals",
+        theme=theme,
         labels={"Total": f"Dividend Amount ({currency})", "Year": "Year"}
-    )
-    
-    fig_yearly.update_traces(
-        marker_color='#4e8df5',
-        textposition='outside',
-        textfont=dict(color='black')
     )
     
     fig_yearly.update_layout(
@@ -111,20 +106,14 @@ def show_overview_tab(df, monthly_data, currency, theme, current_date, current_y
         # Top dividend stocks
         top_stocks = df.groupby('Name')['Total'].sum().sort_values(ascending=False).head(10).reset_index()
         
-        fig_top_stocks = px.bar(
+        fig_top_stocks = create_bar_chart(
             top_stocks,
-            y='Name',
-            x='Total',
+            y_col='Name',
+            x_col='Total',
+            title="🏆 Top 10 Dividend Stocks",
+            theme=theme,
             orientation='h',
-            title="Top 10 Dividend Stocks",
-            template="plotly_white" if theme == "Light" else "plotly_dark",
             labels={"Total": f"Dividend Amount ({currency})", "Name": "Stock"}
-        )
-        
-        fig_top_stocks.update_traces(
-            marker_color='#4e8df5',
-            textposition='outside',
-            textfont=dict(color='black')
         )
         
         fig_top_stocks.update_layout(
@@ -143,18 +132,13 @@ def show_overview_tab(df, monthly_data, currency, theme, current_date, current_y
         ]
         recent_data = recent_data.sort_values('Time').tail(12)  # Last 12 months
         
-        fig_recent = px.line(
+        fig_recent = create_line_chart(
             recent_data,
-            x='Time',
-            y='Total',
-            title="Recent Dividend Trend (Last 12 Months)",
-            template="plotly_white" if theme == "Light" else "plotly_dark",
-            labels={"Total": f"Dividend Amount ({currency})", "Time": "Month"}
-        )
-        
-        fig_recent.update_traces(
-            line=dict(color='#4e8df5', width=3),
-            mode='lines+markers'
+            x_col='Time',
+            y_col='Total_Sum',
+            title="📊 Recent Dividend Trend (Last 12 Months)",
+            theme=theme,
+            labels={"Total_Sum": f"Dividend Amount ({currency})", "Time": "Month"}
         )
         
         fig_recent.update_layout(

@@ -48,9 +48,24 @@ def format_currency(value: float, currency_code: str) -> str:
 def prepare_data(df: pd.DataFrame) -> Optional[pd.DataFrame]:
     try:
         data_clean = df.copy()
-        data_clean['Date'] = pd.to_datetime(data_clean['Date'])
+        # Handle both Date/Time column names
+        if 'Date' in data_clean.columns:
+            data_clean['Date'] = pd.to_datetime(data_clean['Date'])
+        elif 'Time' in data_clean.columns:
+            data_clean['Date'] = pd.to_datetime(data_clean['Time'])
+        else:
+            return None
+        
         data_clean = data_clean.sort_values('Date').reset_index(drop=True)
-        data_clean['Total'] = pd.to_numeric(data_clean['Total'], errors='coerce').fillna(0.0)
+        
+        # Handle both Total/Total_Sum column names
+        if 'Total_Sum' in data_clean.columns:
+            data_clean['Total'] = pd.to_numeric(data_clean['Total_Sum'], errors='coerce').fillna(0.0)
+        elif 'Total' in data_clean.columns:
+            data_clean['Total'] = pd.to_numeric(data_clean['Total'], errors='coerce').fillna(0.0)
+        else:
+            return None
+            
         if not np.all(np.isfinite(data_clean['Total'])): return None
         return data_clean[['Date', 'Total']]
     except Exception as e: return None
@@ -295,16 +310,36 @@ def show_forecast_tab(
 
     st.sidebar.subheader("Forecast Settings")
     forecast_months = st.sidebar.slider("Forecast Horizon (Months)", 3, 36, 12, 3, key="fc_horizon_v3")
+    
+    # Add lookback period control
+    max_lookback = len(cleaned_data)
+    lookback_months = st.sidebar.slider(
+        "Lookback Period (Months)", 
+        min_value=6, 
+        max_value=max_lookback, 
+        value=min(24, max_lookback), 
+        step=1, 
+        key="lookback_period",
+        help="Number of historical months to use for training the forecast models"
+    )
+
+    # Apply lookback period to the data
+    training_data = cleaned_data.tail(lookback_months).copy()
+    st.info(f"Using {len(training_data)} months of data for training (from {training_data['Date'].min().strftime('%Y-%m')} to {training_data['Date'].max().strftime('%Y-%m')})")
 
     available_tabs = []
     if STATSMODELS_INSTALLED: available_tabs.extend(["SARIMAX", "Holt-Winters"])
     if PROPHET_INSTALLED: available_tabs.append("Prophet")
+    
+    # Add ensemble tab if we have multiple models
+    if len(available_tabs) > 1: available_tabs.append("Ensemble")
+    
     if not available_tabs: st.error("No forecasting models available."); return
     tabs = st.tabs(available_tabs); tab_map = dict(zip(available_tabs, tabs))
 
     def run_and_display(model_func: Callable, model_name: str, **model_args):
         with st.spinner(f"Generating {model_name} forecast..."):
-            forecast_df, success, params_str = model_func(cleaned_data.copy(), forecast_months, **model_args)
+            forecast_df, success, params_str = model_func(training_data.copy(), forecast_months, **model_args)
         if success and forecast_df is not None:
             display_forecast_plot(cleaned_data, forecast_df, currency, theme, model_name, params_str)
             st.markdown("---"); display_summary_stats(forecast_df, cleaned_data, currency)
@@ -333,3 +368,64 @@ def show_forecast_tab(
             seasonal = hw_cols[1].selectbox("Seasonality", seasonal_opts, index=1, key="hw_seasonal_select_v3")
             damped = hw_cols[2].checkbox("Damp Trend?", True, key="hw_damped_check_v3")
             run_and_display(run_holtwinters, "Holt-Winters", trend=trend, seasonal=seasonal, damped=damped)
+
+    if "Ensemble" in tab_map:
+        with tab_map["Ensemble"]:
+            st.markdown("**Ensemble Forecast** - Averages predictions from all available models for improved accuracy.")
+            
+            # Run all available models and collect results
+            ensemble_forecasts = []
+            model_names = []
+            
+            with st.spinner("Generating ensemble forecast..."):
+                if STATSMODELS_INSTALLED:
+                    # SARIMAX
+                    sarimax_df, sarimax_success, _ = run_sarimax_fixed(training_data.copy(), forecast_months)
+                    if sarimax_success and sarimax_df is not None:
+                        ensemble_forecasts.append(sarimax_df[['Date', 'Forecast']].copy())
+                        model_names.append("SARIMAX")
+                    
+                    # Holt-Winters with default parameters
+                    hw_df, hw_success, _ = run_holtwinters(training_data.copy(), forecast_months, trend='add', seasonal='add', damped=True)
+                    if hw_success and hw_df is not None:
+                        ensemble_forecasts.append(hw_df[['Date', 'Forecast']].copy())
+                        model_names.append("Holt-Winters")
+                
+                if PROPHET_INSTALLED:
+                    prophet_df, prophet_success, _ = run_prophet(training_data.copy(), forecast_months)
+                    if prophet_success and prophet_df is not None:
+                        ensemble_forecasts.append(prophet_df[['Date', 'Forecast']].copy())
+                        model_names.append("Prophet")
+            
+            if len(ensemble_forecasts) < 2:
+                st.warning("Ensemble requires at least 2 successful models. Not enough models available.")
+            else:
+                st.success(f"Successfully combined {len(ensemble_forecasts)} models: {', '.join(model_names)}")
+                
+                # Create ensemble by averaging forecasts
+                ensemble_df = ensemble_forecasts[0].copy()
+                for i, other_df in enumerate(ensemble_forecasts[1:], 1):
+                    ensemble_df = ensemble_df.merge(other_df, on='Date', suffixes=('', f'_{i}'))
+                
+                # Calculate average forecast
+                forecast_cols = [col for col in ensemble_df.columns if 'Forecast' in col]
+                ensemble_df['Forecast'] = ensemble_df[forecast_cols].mean(axis=1)
+                ensemble_df = ensemble_df[['Date', 'Forecast']]
+                
+                # Add confidence intervals (use standard deviation of model predictions as uncertainty)
+                if len(forecast_cols) > 1:
+                    temp_df = ensemble_df.copy()
+                    for i, other_df in enumerate(ensemble_forecasts):
+                        temp_df = temp_df.merge(other_df, on='Date', suffixes=('', f'_temp_{i}'))
+                    
+                    forecast_matrix = temp_df[[col for col in temp_df.columns if 'Forecast' in col and col != 'Forecast']]
+                    std_dev = forecast_matrix.std(axis=1)
+                    ensemble_df['Lower_CI'] = ensemble_df['Forecast'] - 1.96 * std_dev
+                    ensemble_df['Upper_CI'] = ensemble_df['Forecast'] + 1.96 * std_dev
+                
+                # Display ensemble forecast
+                display_forecast_plot(cleaned_data, ensemble_df, currency, theme, "Ensemble", f"Average of {len(model_names)} models")
+                st.markdown("---"); display_summary_stats(ensemble_df, cleaned_data, currency)
+                st.markdown("---"); display_annual_plot(cleaned_data, ensemble_df, currency, theme)
+                st.markdown("---"); display_forecast_table(ensemble_df, currency)
+                st.markdown("---"); display_fi_calculator(ensemble_df, currency, "Ensemble")

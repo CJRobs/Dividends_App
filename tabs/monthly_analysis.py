@@ -196,7 +196,7 @@ def show_monthly_analysis_tab(df, monthly_data, currency, theme, current_date, c
     
     if not recent_months.empty:
         most_recent_month_data = recent_months.iloc[-1]
-        most_recent_month_amount = most_recent_month_data['Total']
+        most_recent_month_amount = most_recent_month_data['Total_Sum']
         most_recent_month_name = most_recent_month_data['Time'].strftime('%B %Y')
     else:
         most_recent_month_amount = 0
