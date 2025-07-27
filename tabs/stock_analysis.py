@@ -273,36 +273,138 @@ def show_stock_analysis_tab(
 
         st.dataframe(table_df, use_container_width=True, height=400)
 
-        # Summary statistics
+        # Summary statistics with modern dark cards
         st.subheader("Summary Statistics")
+        
+        # Add CSS for modern dark cards
+        st.markdown("""
+        <style>
+        .modern-card {
+            background: #2d3748;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border: 1px solid #4a5568;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .modern-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        }
+        .modern-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+        .card-title {
+            color: #a0aec0;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .card-icon {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #667eea;
+        }
+        .card-value {
+            color: #ffffff;
+            font-size: 1.875rem;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 0.25rem;
+        }
+        .card-subtitle {
+            color: #718096;
+            font-size: 0.75rem;
+            font-weight: 400;
+        }
+        </style>
+        """, unsafe_allow_html=True)
 
         col1, col2, col3, col4 = st.columns(4)
 
         with col1:
             avg_amount = period_totals["Total"].mean()
-            st.metric("Average Amount", format_currency(avg_amount, currency))
+            st.markdown(f"""
+            <div class="modern-card">
+                <div class="card-header">
+                    <span class="card-title">Average Amount</span>
+                    <div class="card-icon" style="background: #667eea;"></div>
+                </div>
+                <div class="card-value">{format_currency(avg_amount, currency)}</div>
+                <div class="card-subtitle">Per period average</div>
+            </div>
+            """, unsafe_allow_html=True)
 
         with col2:
             max_amount = period_totals["Total"].max()
             best_period = period_totals[period_totals["Total"] == max_amount][
                 "PeriodName"
             ].iloc[0]
-            st.metric(
-                "Best Period", best_period, delta=format_currency(max_amount, currency)
-            )
+            st.markdown(f"""
+            <div class="modern-card">
+                <div class="card-header">
+                    <span class="card-title">Best Period</span>
+                    <div class="card-icon" style="background: #48bb78;"></div>
+                </div>
+                <div class="card-value">{best_period}</div>
+                <div class="card-subtitle">{format_currency(max_amount, currency)}</div>
+            </div>
+            """, unsafe_allow_html=True)
 
         with col3:
             if len(period_totals) > 1 and "Growth" in period_totals_sorted.columns:
                 avg_growth = period_totals_sorted["Growth"].mean()
-                st.metric("Avg Growth Rate", f"{avg_growth:.1f}%")
+                stat_value = f"{avg_growth:.1f}%"
+                stat_label = "Avg Growth Rate"
+                subtitle = "Period over period"
+                icon_color = "#ed8936" if avg_growth >= 0 else "#f56565"
             else:
-                st.metric("Total Periods", str(len(period_totals)))
+                stat_value = str(len(period_totals))
+                stat_label = "Total Periods"
+                subtitle = "Data points available"
+                icon_color = "#9f7aea"
+            
+            st.markdown(f"""
+            <div class="modern-card">
+                <div class="card-header">
+                    <span class="card-title">{stat_label}</span>
+                    <div class="card-icon" style="background: {icon_color};"></div>
+                </div>
+                <div class="card-value">{stat_value}</div>
+                <div class="card-subtitle">{subtitle}</div>
+            </div>
+            """, unsafe_allow_html=True)
 
         with col4:
             total_all = period_totals["Total"].sum()
-            st.metric("Total Income", format_currency(total_all, currency))
+            st.markdown(f"""
+            <div class="modern-card">
+                <div class="card-header">
+                    <span class="card-title">Total Income</span>
+                    <div class="card-icon" style="background: #38b2ac;"></div>
+                </div>
+                <div class="card-value">{format_currency(total_all, currency)}</div>
+                <div class="card-subtitle">All periods combined</div>
+            </div>
+            """, unsafe_allow_html=True)
 
-        # Stock concentration risk analysis
+        # Stock concentration risk analysis with modern cards
         st.subheader("Stock Concentration Risk Analysis")
 
         # Calculate concentration metrics using stock_totals from pie chart
@@ -313,67 +415,67 @@ def show_stock_analysis_tab(
 
         col1, col2, col3, col4 = st.columns(4)
 
-        # Define risk levels
+        # Define risk levels with modern colors
         def get_concentration_risk(pct, thresholds):
             if pct > thresholds[0]:
-                return "High", "red"
+                return "High", "#f56565", "#fed7d7"
             elif pct > thresholds[1]:
-                return "Medium", "orange"
+                return "Medium", "#ed8936", "#feebc8"
             else:
-                return "Low", "green"
+                return "Low", "#48bb78", "#c6f6d5"
 
-        top_1_risk, top_1_color = get_concentration_risk(top_1_pct, [15, 10])
-        top_3_risk, top_3_color = get_concentration_risk(top_3_pct, [40, 25])
-        top_5_risk, top_5_color = get_concentration_risk(top_5_pct, [60, 40])
-        top_10_risk, top_10_color = get_concentration_risk(top_10_pct, [80, 60])
+        top_1_risk, top_1_color, top_1_bg = get_concentration_risk(top_1_pct, [15, 10])
+        top_3_risk, top_3_color, top_3_bg = get_concentration_risk(top_3_pct, [40, 25])
+        top_5_risk, top_5_color, top_5_bg = get_concentration_risk(top_5_pct, [60, 40])
+        top_10_risk, top_10_color, top_10_bg = get_concentration_risk(top_10_pct, [80, 60])
 
         with col1:
-            st.markdown(
-                f"""
-            <div class="metric-card">
-                <div class="metric-value">{top_1_pct:.1f}%</div>
-                <div class="metric-label">Top Stock</div>
-                <div style="color: {top_1_color};">Risk: {top_1_risk}</div>
+            st.markdown(f"""
+            <div class="modern-card">
+                <div class="card-header">
+                    <span class="card-title">Top Stock</span>
+                    <div class="card-icon" style="background: {top_1_color};"></div>
+                </div>
+                <div class="card-value">{top_1_pct:.1f}%</div>
+                <div class="card-subtitle" style="color: {top_1_color};">Risk: {top_1_risk}</div>
             </div>
-            """,
-                unsafe_allow_html=True,
-            )
+            """, unsafe_allow_html=True)
 
         with col2:
-            st.markdown(
-                f"""
-            <div class="metric-card">
-                <div class="metric-value">{top_3_pct:.1f}%</div>
-                <div class="metric-label">Top 3 Stocks</div>
-                <div style="color: {top_3_color};">Risk: {top_3_risk}</div>
+            st.markdown(f"""
+            <div class="modern-card">
+                <div class="card-header">
+                    <span class="card-title">Top 3 Stocks</span>
+                    <div class="card-icon" style="background: {top_3_color};"></div>
+                </div>
+                <div class="card-value">{top_3_pct:.1f}%</div>
+                <div class="card-subtitle" style="color: {top_3_color};">Risk: {top_3_risk}</div>
             </div>
-            """,
-                unsafe_allow_html=True,
-            )
+            """, unsafe_allow_html=True)
 
         with col3:
-            st.markdown(
-                f"""
-            <div class="metric-card">
-                <div class="metric-value">{top_5_pct:.1f}%</div>
-                <div class="metric-label">Top 5 Stocks</div>
-                <div style="color: {top_5_color};">Risk: {top_5_risk}</div>
+            st.markdown(f"""
+            <div class="modern-card">
+                <div class="card-header">
+                    <span class="card-title">Top 5 Stocks</span>
+                    <div class="card-icon" style="background: {top_5_color};"></div>
+                </div>
+                <div class="card-value">{top_5_pct:.1f}%</div>
+                <div class="card-subtitle" style="color: {top_5_color};">Risk: {top_5_risk}</div>
             </div>
-            """,
-                unsafe_allow_html=True,
-            )
+            """, unsafe_allow_html=True)
 
         with col4:
-            st.markdown(
-                f"""
-            <div class="metric-card">
-                <div class="metric-value">{top_10_pct:.1f}%</div>
-                <div class="metric-label">Top 10 Stocks</div>
-                <div style="color: {top_10_color};">Risk: {top_10_risk}</div>
+            st.markdown(f"""
+            <div class="modern-card">
+                <div class="card-header">
+                    <span class="card-title">Top 10 Stocks</span>
+                    <div class="card-icon" style="background: {top_10_color};"></div>
+                </div>
+                <div class="card-value">{top_10_pct:.1f}%</div>
+                <div class="card-subtitle" style="color: {top_10_color};">Risk: {top_10_risk}</div>
             </div>
-            """,
-                unsafe_allow_html=True,
-            )
+            """, unsafe_allow_html=True)
 
     # New Individual Company Analysis tab
     with analysis_tabs[1]:

@@ -737,13 +737,15 @@ def show_forecast_tab(
             hw_cols = st.columns(3)
             trend_opts = [None, "add", "mul"]
             seasonal_opts = [None, "add", "mul"]
-            trend = hw_cols[0].selectbox(
-                "Trend", trend_opts, index=1, key="hw_trend_select_v3"
-            )
-            seasonal = hw_cols[1].selectbox(
-                "Seasonality", seasonal_opts, index=1, key="hw_seasonal_select_v3"
-            )
-            damped = hw_cols[2].checkbox("Damp Trend?", True, key="hw_damped_check_v3")
+            # Fixed Holt-Winters parameters as requested
+            trend = "add"
+            seasonal = "mul" 
+            damped = False
+            
+            # Display the fixed settings
+            hw_cols[0].info(f"Trend: **{trend}** (fixed)")
+            hw_cols[1].info(f"Seasonality: **{seasonal}** (fixed)")
+            hw_cols[2].info(f"Damp Trend: **{damped}** (fixed)")
             run_and_display(
                 run_holtwinters,
                 "Holt-Winters",
@@ -787,13 +789,13 @@ def show_forecast_tab(
                         )
                         model_names.append("SARIMAX")
 
-                    # Holt-Winters with default parameters
+                    # Holt-Winters with fixed parameters
                     hw_df, hw_success, _ = run_holtwinters(
                         training_data.copy(),
                         forecast_months,
                         trend="add",
-                        seasonal="add",
-                        damped=True,
+                        seasonal="mul",
+                        damped=False,
                     )
                     if hw_success and hw_df is not None:
                         ensemble_forecasts.append(hw_df[["Date", "Forecast"]].copy())
@@ -858,24 +860,8 @@ def show_forecast_tab(
                 if len(ensemble_df) > 0 and len(forecast_cols) > 0:
                     ensemble_df["Forecast"] = ensemble_df[forecast_cols].mean(axis=1)
 
-                    # Add confidence intervals using standard deviation of predictions
-                    if len(forecast_cols) > 1:
-                        std_dev = ensemble_df[forecast_cols].std(axis=1)
-                        ensemble_df["Lower_CI"] = (
-                            ensemble_df["Forecast"] - 1.96 * std_dev
-                        )
-                        ensemble_df["Upper_CI"] = (
-                            ensemble_df["Forecast"] + 1.96 * std_dev
-                        )
-                    else:
-                        # Single model - use simple CI
-                        ensemble_df["Lower_CI"] = ensemble_df["Forecast"] * 0.8
-                        ensemble_df["Upper_CI"] = ensemble_df["Forecast"] * 1.2
-
-                    # Final ensemble dataframe
-                    ensemble_df = ensemble_df[
-                        ["Date", "Forecast", "Lower_CI", "Upper_CI"]
-                    ].copy()
+                    # Final ensemble dataframe - no confidence intervals
+                    ensemble_df = ensemble_df[["Date", "Forecast"]].copy()
                 else:
                     st.error(
                         "Ensemble creation failed - unable to align model forecasts."
