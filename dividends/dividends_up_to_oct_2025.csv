@@ -1,4 +1,34 @@
 Action,Time,ISIN,Ticker,Name,No. of shares,Price / share,Currency (Price / share),Exchange rate,Total,Currency (Total),Withholding tax,Currency (Withholding tax)
+Dividend (Dividend),2025-08-01 11:43:15,LU1072616219,BME,B&M European Value Retail,250.0,8.245,GBX,Not available,20.61,GBP,363.75,GBX
+Dividend (Dividend),2025-08-06 12:25:55,US31488V1070,FERG,Ferguson,2.0,52.63353,GBX,Not available,1.05,GBP,18.58,GBX
+Dividend (Dividend),2025-08-06 12:31:08,NL0010273215,ASML,ASML,6.0,1.36,EUR,Not available,7.1,GBP,1.44,EUR
+Dividend (Dividend),2025-08-07 11:32:06,IE000U9J8HX9,JEQP,JPMorgan Nasdaq Equity Premium Income Active (Dist),150.0,15.667066,GBX,Not available,23.5,GBP,-0.0,GBX
+Dividend (Dividend),2025-08-08 12:57:48,IE00BM8R0J59,QYLP,Global X Nasdaq 100 Covered Call,200.0,0.111552,GBP,Not available,22.31,GBP,-0.0,GBP
+Dividend (Dividend),2025-08-08 13:02:43,US57636Q1040,MA,Mastercard,2.0,0.646,USD,Not available,0.96,GBP,0.23,USD
+Dividend (Dividend),2025-09-05 11:16:26,IE00BM8R0J59,QYLP,Global X Nasdaq 100 Covered Call,200.0,0.112116,GBP,Not available,22.42,GBP,0.0,GBP
+Dividend (Dividend),2025-09-08 13:23:28,IE000U9J8HX9,JEQP,JPMorgan Nasdaq Equity Premium Income Active (Dist),150.0,18.312468,GBX,Not available,27.47,GBP,-0.0,GBX
+Dividend (Dividend),2025-09-10 11:06:37,US78409V1044,SPGI,S&P Global,0.5,0.816,USD,Not available,0.3,GBP,0.07,USD
+Dividend (Dividend),2025-09-11 12:36:01,US5949181045,MSFT,Microsoft,3.0,0.7055,USD,Not available,1.57,GBP,0.37,USD
+Dividend (Dividend),2025-09-15 12:17:10,US02079K1079,GOOG,Alphabet (Class C),2.0,0.1785,USD,Not available,0.26,GBP,0.06,USD
+Dividend (Dividend),2025-09-17 11:28:37,GB00B0SWJX34,LSEG,London Stock Exchange Group,8.0,47.0,GBX,Not available,3.76,GBP,0.0,GBX
+Dividend (Dividend),2025-09-19 11:14:53,GB0007980591,BP,BP,1500.0,6.1942,GBX,Not available,92.91,GBP,0.0,GBX
+Dividend (Dividend),2025-09-23 07:35:42,US91324P1021,UNH,UnitedHealth,16.0,1.8785,USD,Not available,22.25,GBP,5.3,USD
+Dividend (Dividend),2025-09-25 11:29:58,US7475251036,QCOM,Qualcomm,1.0,0.7565,USD,Not available,0.56,GBP,0.13,USD
+Dividend (Dividend),2025-09-26 12:45:54,CH0114405324,GRMN,Garmin,5.0,0.9,USD,Not available,3.37,GBP,0.0,USD
+Dividend (Dividend),2025-09-26 13:14:27,GB0005405286,HSBA,HSBC,80.0,7.3562,GBX,Not available,5.88,GBP,0.0,GBX
+Dividend (Dividend),2025-09-29 11:55:38,CA11271J1075,BN,Brookfield,1.0,0.105937,CAD,Not available,0.06,GBP,0.02,CAD
+Dividend (Dividend),2025-09-30 13:35:23,IE00BYXVWC37,STHS,PIMCO US Short-Term High Yield Corporate Bond Index (Dist),300.0,0.046057,GBP,Not available,13.82,GBP,0.0,GBP
+Dividend (Dividend),2025-10-01 12:40:19,IE00B3XXRP09,VUSA,Vanguard S&P 500 (Dist),46.0,0.223815,GBP,Not available,10.3,GBP,0.0,GBP
+Dividend (Dividend),2025-07-11 11:06:05,IE00BM8R0J59,QYLP,Global X Nasdaq 100 Covered Call,200.0,0.115475,GBP,Not available,23.09,GBP,-0.0,GBP
+Dividend (Dividend),2025-07-02 12:15:29,IE00B3XXRP09,VUSA,Vanguard S&P 500 (Dist),46.0,0.227797,GBP,Not available,10.48,GBP,-0.0,GBP
+Dividend (Dividend),2025-07-02 12:55:32,IE00BZ163L38,VEMT,Vanguard USD Emerging Markets Government Bond (Dist),60.0,0.138502,GBP,Not available,8.31,GBP,0.0,GBP
+Dividend (Dividend),2025-07-08 13:01:00,IE000U9J8HX9,JEQP,JPMorgan Nasdaq Equity Premium Income Active (Dist),40.0,26.940572,GBX,Not available,10.78,GBP,0.0,GBX
+Dividend (Dividend),2025-07-08 13:01:38,IE0003UVYC20,JEGP,JPMorgan Global Equity Premium Income Active (Dist),100.0,24.717535,GBX,Not available,24.72,GBP,-0.0,GBX
+Dividend (Dividend),2025-07-10 13:36:13,US01609W1027,BABA,Alibaba,11.0,1.05,USD,Not available,8.49,GBP,0.0,USD
+Dividend (Dividend),2025-07-10 13:45:01,US9256521090,VICI,VICI Properties,40.0,0.367625,USD,Not available,10.8,GBP,2.6,USD
+Dividend (Dividend),2025-07-10 13:46:44,GB00BLDYK618,SMT,Scottish Mortgage Investment Trust,40.0,2.78,GBX,Not available,1.11,GBP,0.0,GBX
+Dividend (Dividend),2025-07-10 13:50:51,US01609W1027,BABA,Alibaba,11.0,0.95,USD,Not available,7.68,GBP,0.0,USD
+Dividend (Dividend),2025-07-10 14:13:44,US79466L3024,CRM,Salesforce,8.0,0.3536,USD,Not available,2.08,GBP,0.5,USD
 Dividend (Dividend),2025-05-30 12:53:12,US55354G1004,MSCI,MSCI,3.0,1.53,USD,Not available,3.41,GBP,0.81,USD
 Dividend (Dividend),2025-05-30 12:55:22,IE00BYXVWC37,STHS,PIMCO US Short-Term High Yield Corporate Bond Index (Dist),225.0,0.050164,GBP,Not available,11.29,GBP,0.0,GBP
 Dividend (Dividend),2025-06-06 12:55:43,US7010941042,PH,Parker-Hannifin,1.0,1.53,USD,Not available,1.13,GBP,0.27,USD
@@ -389,3 +419,9 @@ Dividend (Dividend),2025-05-07 13:22:27,IE0003UVYC20,JEGP,JPMorgan Global Equity
 Dividend (Dividend),2025-05-07 13:26:59,FR0000052292,RMS,Hermes International,0.25,7.5,EUR,Not available,1.6,GBP,0.63,EUR
 Dividend (Dividend),2025-05-07 13:33:43,FR0000052292,RMS,Hermes International,0.25,9.375,EUR,Not available,1.99,GBP,0.78,EUR
 Dividend (Dividend),2025-05-07 13:44:06,GB0003718474,GAW,Games Workshop,7.0,100.0,GBX,Not available,7.0,GBP,0.0,GBX
+Dividend (Dividend),2025-08-15 09:41:05,GB0003718474,GAW,Games Workshop,7.0,85.0,GBX,Not available,5.95,GBP,0.0,GBX
+Dividend (Dividend),2025-08-29 10:07:21,IE00BYXVWC37,STHS,PIMCO US Short-Term High Yield Corporate Bond Index (Dist),300.0,0.062452,GBP,Not available,18.74,GBP,0.0,GBP
+Dividend (Dividend),2025-08-29 10:46:41,US55354G1004,MSCI,MSCI,4.0,1.53,USD,Not available,4.53,GBP,1.08,USD
+Dividend (Dividend),2025-07-31 12:30:14,IE00BYXVWC37,STHS,PIMCO US Short-Term High Yield Corporate Bond Index (Dist),300.0,0.047313,GBP,Not available,14.19,GBP,0.0,GBP
+Dividend (Dividend),2025-07-31 12:46:03,US8636671013,SYK,Stryker,1.25,0.714,USD,Not available,0.67,GBP,0.16,USD
+Dividend (Dividend),2025-07-10 13:29:51,US8740391003,TSM,Taiwan Semiconductor Manufacturing,10.0,0.616441,USD,Not available,4.53,GBP,1.64,USD
