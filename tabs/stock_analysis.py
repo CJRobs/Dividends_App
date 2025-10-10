@@ -46,7 +46,7 @@ def show_stock_analysis_tab(
             "Select Time Period", ["Monthly", "Quarterly", "Yearly"], horizontal=True
         )
 
-        # Create totals by time period (not by individual stocks)
+        # Create totals by time period broken down by stock
         if time_period == "Monthly":
             time_data = df.copy()
             # Create sorting field for chronological order
@@ -59,9 +59,9 @@ def show_stock_analysis_tab(
             time_data["PeriodName"] = time_data["Period"].dt.strftime("%b %Y")
             time_data["PeriodKey"] = time_data["Period"].dt.strftime("%Y-%m")
 
-            # Group by period only (sum all stocks for each period)
+            # Group by period AND stock name
             period_totals = (
-                time_data.groupby(["Period", "PeriodName", "PeriodKey"])["Total"]
+                time_data.groupby(["Period", "PeriodName", "PeriodKey", "Name"])["Total"]
                 .sum()
                 .reset_index()
             )
@@ -89,9 +89,9 @@ def show_stock_analysis_tab(
                 + time_data["QuarterNum"].astype(str)
             )
 
-            # Group by period only (sum all stocks for each period)
+            # Group by period AND stock name
             period_totals = (
-                time_data.groupby(["Period", "PeriodName", "PeriodKey"])["Total"]
+                time_data.groupby(["Period", "PeriodName", "PeriodKey", "Name"])["Total"]
                 .sum()
                 .reset_index()
             )
@@ -104,9 +104,9 @@ def show_stock_analysis_tab(
             time_data["PeriodName"] = time_data["Year"].astype(str)
             time_data["PeriodKey"] = time_data["Year"].astype(str)
 
-            # Group by period only (sum all stocks for each period)
+            # Group by period AND stock name
             period_totals = (
-                time_data.groupby(["Period", "PeriodName", "PeriodKey"])["Total"]
+                time_data.groupby(["Period", "PeriodName", "PeriodKey", "Name"])["Total"]
                 .sum()
                 .reset_index()
             )
@@ -114,34 +114,52 @@ def show_stock_analysis_tab(
         # Sort chronologically by the Period datetime
         period_totals = period_totals.sort_values("Period")
 
-        # Create bar chart showing total dividends by time period
-        fig_period = px.bar(
-            period_totals,
-            x="PeriodName",
-            y="Total",
-            title=f"Total {time_period} Dividend Income",
-            template="plotly_white" if theme == "Light" else "plotly_dark",
-            labels={
-                "Total": f"Dividend Amount ({currency})",
-                "PeriodName": "Time Period",
-            },
-            color="Total",
-            color_continuous_scale="Blues",
-        )
+        # Create stacked bar chart using graph_objects for better control
+        fig_period = go.Figure()
+
+        # Get unique stocks and periods
+        stocks = period_totals["Name"].unique()
+        periods = period_totals.sort_values("Period")["PeriodName"].unique()
+
+        # Add a trace for each stock
+        for stock in stocks:
+            stock_data = period_totals[period_totals["Name"] == stock]
+
+            # Create a dict mapping period to total for this stock
+            period_to_total = dict(zip(stock_data["PeriodName"], stock_data["Total"]))
+
+            # Create y values for all periods (0 if stock didn't pay in that period)
+            y_values = [period_to_total.get(period, 0) for period in periods]
+
+            fig_period.add_trace(
+                go.Bar(
+                    name=stock,
+                    x=periods,
+                    y=y_values,
+                    text=[f"{v:,.0f}" if v > 0 else "" for v in y_values],
+                    textposition="inside",
+                    textfont=dict(color="white", size=10),
+                    hovertemplate=f"<b>{stock}</b><br>Period: %{{x}}<br>Amount: {currency}%{{y:,.2f}}<extra></extra>",
+                )
+            )
 
         fig_period.update_layout(
+            barmode="stack",
+            title=f"{time_period} Dividend Income by Stock",
+            template="plotly_white" if theme == "Light" else "plotly_dark",
             height=600,
             xaxis=dict(title="Time Period", tickangle=-45),
             yaxis=dict(title=f"Dividend Amount ({currency})"),
-            showlegend=False,
+            showlegend=True,
+            legend=dict(
+                title=dict(text="Stock"),
+                orientation="v",
+                yanchor="top",
+                y=1,
+                xanchor="left",
+                x=1.02,
+            ),
             font=dict(color="black"),
-        )
-
-        # Add value labels on bars
-        fig_period.update_traces(
-            texttemplate="%{y:,.0f}",
-            textposition="outside",
-            textfont=dict(color="black"),
         )
 
         st.plotly_chart(fig_period, use_container_width=True)
@@ -181,11 +199,14 @@ def show_stock_analysis_tab(
         st.plotly_chart(fig_pie, use_container_width=True)
 
         # Growth analysis chart
-        if len(period_totals) > 1:
+        # For growth analysis, we need to calculate total per period first
+        period_summary = period_totals.groupby(["Period", "PeriodName", "PeriodKey"])["Total"].sum().reset_index()
+
+        if len(period_summary) > 1:
             st.subheader(f"{time_period} Growth Analysis")
 
             # Calculate period-over-period growth
-            period_totals_sorted = period_totals.sort_values("Period").copy()
+            period_totals_sorted = period_summary.sort_values("Period").copy()
             period_totals_sorted["Previous"] = period_totals_sorted["Total"].shift(1)
             period_totals_sorted["Growth"] = (
                 (period_totals_sorted["Total"] - period_totals_sorted["Previous"])
@@ -228,8 +249,8 @@ def show_stock_analysis_tab(
         # Time period breakdown table
         st.subheader(f"{time_period} Breakdown")
 
-        # Format the table
-        table_df = period_totals.copy()
+        # Format the table using period_summary (total per period)
+        table_df = period_summary.copy()
         table_df["Rank"] = range(1, len(table_df) + 1)
         table_df["FormattedTotal"] = table_df["Total"].apply(
             lambda x: format_currency(x, currency)
@@ -339,7 +360,7 @@ def show_stock_analysis_tab(
         col1, col2, col3, col4 = st.columns(4)
 
         with col1:
-            avg_amount = period_totals["Total"].mean()
+            avg_amount = period_summary["Total"].mean()
             st.markdown(f"""
             <div class="modern-card">
                 <div class="card-header">
@@ -352,8 +373,8 @@ def show_stock_analysis_tab(
             """, unsafe_allow_html=True)
 
         with col2:
-            max_amount = period_totals["Total"].max()
-            best_period = period_totals[period_totals["Total"] == max_amount][
+            max_amount = period_summary["Total"].max()
+            best_period = period_summary[period_summary["Total"] == max_amount][
                 "PeriodName"
             ].iloc[0]
             st.markdown(f"""
@@ -368,18 +389,18 @@ def show_stock_analysis_tab(
             """, unsafe_allow_html=True)
 
         with col3:
-            if len(period_totals) > 1 and "Growth" in period_totals_sorted.columns:
+            if len(period_summary) > 1 and "Growth" in period_totals_sorted.columns:
                 avg_growth = period_totals_sorted["Growth"].mean()
                 stat_value = f"{avg_growth:.1f}%"
                 stat_label = "Avg Growth Rate"
                 subtitle = "Period over period"
                 icon_color = "#ed8936" if avg_growth >= 0 else "#f56565"
             else:
-                stat_value = str(len(period_totals))
+                stat_value = str(len(period_summary))
                 stat_label = "Total Periods"
                 subtitle = "Data points available"
                 icon_color = "#9f7aea"
-            
+
             st.markdown(f"""
             <div class="modern-card">
                 <div class="card-header">
@@ -392,7 +413,7 @@ def show_stock_analysis_tab(
             """, unsafe_allow_html=True)
 
         with col4:
-            total_all = period_totals["Total"].sum()
+            total_all = period_summary["Total"].sum()
             st.markdown(f"""
             <div class="modern-card">
                 <div class="card-header">
