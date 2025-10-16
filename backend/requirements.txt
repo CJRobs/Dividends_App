@@ -1,0 +1,36 @@
+# Core FastAPI Dependencies
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# Data Processing (from original app)
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Visualization Data
+plotly>=5.15.0
+
+# Configuration Management
+python-dotenv>=1.0.0
+
+# HTTP Requests
+requests>=2.31.0
+
+# PDF Generation
+reportlab>=4.0.0
+
+# File Upload Support
+python-multipart>=0.0.6
+
+# CORS Support
+fastapi-cors>=0.0.6
+
+# Optional: Time Series Forecasting
+# Uncomment if using forecast functionality
+# prophet>=1.1.4
+# statsmodels>=0.14.0
+
+# Development Dependencies
+pytest>=7.4.0
+httpx>=0.25.0  # For testing FastAPI
