@@ -113,3 +113,47 @@ class OverviewResponse(BaseModel):
     monthly_chart: ChartData
     top_stocks: List[StockSummary]
     recent_dividends: List[RecentDividend]
+
+
+class AnnualStats(BaseModel):
+    """Annual statistics for a single year."""
+
+    year: int
+    total: float
+    count: int
+    average: float
+    unique_stocks: int
+    growth: Optional[float] = None
+
+
+class DividendStreakInfo(BaseModel):
+    """Information about consecutive dividend payments."""
+
+    current_streak: int = Field(..., description="Current streak of consecutive months with dividends")
+    longest_streak: int = Field(..., description="Longest streak of consecutive months")
+    months_with_dividends: int = Field(..., description="Total months that had dividends")
+    total_months_span: int = Field(..., description="Total months span of dividend history")
+
+
+class YoYMonthData(BaseModel):
+    """Year-over-year comparison data for a single month."""
+
+    month: str
+    data: dict  # Year -> value mapping
+
+
+class YoYComparisonData(BaseModel):
+    """Year-over-year comparison response."""
+
+    months: List[YoYMonthData]
+    years: List[int]
+
+
+class FICalculatorResponse(BaseModel):
+    """Financial Independence calculator response."""
+
+    monthly_goal: float = Field(..., description="Target monthly dividend income")
+    current_monthly_avg: float = Field(..., description="Current average monthly dividends")
+    annual_growth_rate: float = Field(..., description="Estimated annual growth rate (percentage)")
+    years_to_goal: Optional[float] = Field(None, description="Estimated years to reach goal (None if already reached or infinite)")
+    goal_reached: bool = Field(..., description="Whether the goal has been reached")

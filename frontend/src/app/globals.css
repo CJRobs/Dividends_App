@@ -43,73 +43,115 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+/* =====================================================
+   Visa Design System Theme
+   Based on https://design.visa.com/
+   Clean, professional, trustworthy
+   ===================================================== */
+
+/* Light mode - Visa Professional Theme */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --radius: 0.375rem;
+
+  /* Core colors */
+  --background: #fafbfc;
+  --foreground: #1a1f36;
+  --card: #ffffff;
+  --card-foreground: #1a1f36;
+  --popover: #ffffff;
+  --popover-foreground: #1a1f36;
+
+  /* Primary - Visa Deep Blue */
+  --primary: #1a1f71;
+  --primary-foreground: #ffffff;
+
+  /* Secondary */
+  --secondary: #f0f2f5;
+  --secondary-foreground: #1a1f71;
+
+  /* Muted */
+  --muted: #f5f7fa;
+  --muted-foreground: #697386;
+
+  /* Accent - Visa Gold */
+  --accent: #f7b600;
+  --accent-foreground: #1a1f36;
+
+  /* Destructive */
+  --destructive: #d32f2f;
+
+  /* Borders */
+  --border: #e3e8ee;
+  --input: #e3e8ee;
+  --ring: #1a1f71;
+
+  /* Charts - Professional palette */
+  --chart-1: #1a1f71;
+  --chart-2: #00875a;
+  --chart-3: #f7b600;
+  --chart-4: #5850ec;
+  --chart-5: #d946ef;
+
+  /* Sidebar - Visa Dark Blue */
+  --sidebar: #1a1f71;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #f7b600;
+  --sidebar-primary-foreground: #1a1f36;
+  --sidebar-accent: #2d3282;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #2d3282;
+  --sidebar-ring: #f7b600;
 }
 
+/* Dark mode - Visa Dark Theme */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #0d1117;
+  --foreground: #f0f6fc;
+  --card: #161b22;
+  --card-foreground: #f0f6fc;
+  --popover: #161b22;
+  --popover-foreground: #f0f6fc;
+
+  /* Primary - Visa Blue lighter for dark mode */
+  --primary: #3949ab;
+  --primary-foreground: #ffffff;
+
+  /* Secondary */
+  --secondary: #21262d;
+  --secondary-foreground: #f0f6fc;
+
+  /* Muted */
+  --muted: #21262d;
+  --muted-foreground: #8b949e;
+
+  /* Accent - Visa Gold */
+  --accent: #f7b600;
+  --accent-foreground: #1a1f36;
+
+  /* Destructive */
+  --destructive: #f85149;
+
+  /* Borders */
+  --border: #30363d;
+  --input: #30363d;
+  --ring: #3949ab;
+
+  /* Charts - Bright for dark mode */
+  --chart-1: #58a6ff;
+  --chart-2: #3fb950;
+  --chart-3: #f7b600;
+  --chart-4: #a371f7;
+  --chart-5: #f778ba;
+
+  /* Sidebar */
+  --sidebar: #0d1117;
+  --sidebar-foreground: #f0f6fc;
+  --sidebar-primary: #f7b600;
+  --sidebar-primary-foreground: #1a1f36;
+  --sidebar-accent: #21262d;
+  --sidebar-accent-foreground: #f0f6fc;
+  --sidebar-border: #30363d;
+  --sidebar-ring: #f7b600;
 }
 
 @layer base {
@@ -118,5 +160,340 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
+
+  /* Visa-style typography - clean and professional */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight text-foreground;
+  }
+}
+
+/* Custom scrollbar - minimal Visa style */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--muted-foreground);
+  border-radius: 3px;
+  opacity: 0.5;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+/* Smooth transitions */
+* {
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Chart tooltip styling */
+.recharts-tooltip-wrapper {
+  outline: none !important;
+}
+
+/* =====================================================
+   Visa Design System Components
+   ===================================================== */
+
+/* Card styles - Clean, elevated */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(26, 31, 113, 0.1);
+}
+
+.dark .card-hover:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Visa gradient card */
+.card-gradient {
+  background: linear-gradient(135deg, var(--card) 0%, var(--muted) 100%);
+}
+
+/* Metric cards with accent borders */
+.metric-positive {
+  background: linear-gradient(135deg, rgba(0, 135, 90, 0.06) 0%, transparent 100%);
+  border-left: 3px solid #00875a;
+}
+
+.metric-negative {
+  background: linear-gradient(135deg, rgba(211, 47, 47, 0.06) 0%, transparent 100%);
+  border-left: 3px solid #d32f2f;
+}
+
+.metric-neutral {
+  background: linear-gradient(135deg, rgba(105, 115, 134, 0.06) 0%, transparent 100%);
+  border-left: 3px solid #697386;
+}
+
+.metric-primary {
+  background: linear-gradient(135deg, rgba(26, 31, 113, 0.06) 0%, transparent 100%);
+  border-left: 3px solid var(--primary);
+}
+
+.metric-accent {
+  background: linear-gradient(135deg, rgba(247, 182, 0, 0.08) 0%, transparent 100%);
+  border-left: 3px solid var(--accent);
+}
+
+/* Animated progress bar */
+.progress-animated {
+  animation: progress-fill 1s ease-out forwards;
+}
+
+@keyframes progress-fill {
+  from {
+    width: 0%;
+  }
+}
+
+/* Shimmer loading effect */
+.shimmer {
+  background: linear-gradient(90deg, var(--muted) 25%, rgba(255, 255, 255, 0.3) 50%, var(--muted) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Page entrance animation */
+.page-enter {
+  animation: fade-up 0.3s ease-out;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Staggered card animation */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+
+/* Enhanced focus states - Visa accessibility */
+*:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Data row hover - subtle */
+.data-row {
+  transition: background-color 0.1s ease;
+}
+
+.data-row:hover {
+  background-color: rgba(26, 31, 113, 0.03);
+}
+
+.dark .data-row:hover {
+  background-color: rgba(88, 166, 255, 0.06);
+}
+
+/* Glow effects */
+.glow-primary {
+  box-shadow: 0 0 16px rgba(26, 31, 113, 0.15);
+}
+
+.glow-success {
+  box-shadow: 0 0 16px rgba(0, 135, 90, 0.15);
+}
+
+.glow-accent {
+  box-shadow: 0 0 16px rgba(247, 182, 0, 0.25);
+}
+
+/* Pulse animation */
+.pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Chart container */
+.chart-container {
+  background: linear-gradient(180deg, transparent 0%, rgba(26, 31, 113, 0.01) 100%);
+  border-radius: var(--radius);
+}
+
+.dark .chart-container {
+  background: linear-gradient(180deg, transparent 0%, rgba(88, 166, 255, 0.02) 100%);
+}
+
+/* Badge variants */
+.badge-success {
+  background: rgba(0, 135, 90, 0.1);
+  color: #00875a;
+  border: 1px solid rgba(0, 135, 90, 0.2);
+}
+
+.dark .badge-success {
+  background: rgba(63, 185, 80, 0.15);
+  color: #3fb950;
+  border: 1px solid rgba(63, 185, 80, 0.3);
+}
+
+.badge-warning {
+  background: rgba(247, 182, 0, 0.1);
+  color: #b45309;
+  border: 1px solid rgba(247, 182, 0, 0.2);
+}
+
+.dark .badge-warning {
+  background: rgba(247, 182, 0, 0.15);
+  color: #f7b600;
+  border: 1px solid rgba(247, 182, 0, 0.3);
+}
+
+.badge-danger {
+  background: rgba(211, 47, 47, 0.1);
+  color: #d32f2f;
+  border: 1px solid rgba(211, 47, 47, 0.2);
+}
+
+.dark .badge-danger {
+  background: rgba(248, 81, 73, 0.15);
+  color: #f85149;
+  border: 1px solid rgba(248, 81, 73, 0.3);
+}
+
+/* Number formatting - tabular nums for alignment */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Elevation shadows - Visa style (subtle) */
+.elevation-1 {
+  box-shadow: 0 1px 2px rgba(26, 31, 113, 0.04), 0 1px 3px rgba(26, 31, 113, 0.08);
+}
+
+.elevation-2 {
+  box-shadow: 0 2px 4px rgba(26, 31, 113, 0.04), 0 4px 8px rgba(26, 31, 113, 0.08);
+}
+
+.elevation-3 {
+  box-shadow: 0 4px 8px rgba(26, 31, 113, 0.04), 0 8px 16px rgba(26, 31, 113, 0.08);
+}
+
+.dark .elevation-1,
+.dark .elevation-2,
+.dark .elevation-3 {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Divider with gradient */
+.divider-gradient {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border), transparent);
+}
+
+/* Text gradient - Visa blue */
+.text-gradient {
+  background: linear-gradient(135deg, #1a1f71, #3949ab);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-gold {
+  background: linear-gradient(135deg, #f7b600, #d4a000);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Visa button styles */
+.btn-visa-primary {
+  background: var(--primary);
+  color: white;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.btn-visa-primary:hover {
+  background: #2d3282;
+  box-shadow: 0 2px 8px rgba(26, 31, 113, 0.25);
+}
+
+.btn-visa-gold {
+  background: var(--accent);
+  color: #1a1f36;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.btn-visa-gold:hover {
+  background: #d4a000;
+  box-shadow: 0 2px 8px rgba(247, 182, 0, 0.35);
+}
+
+/* Status indicators */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-dot-success {
+  background: #00875a;
+  box-shadow: 0 0 0 2px rgba(0, 135, 90, 0.2);
+}
+
+.status-dot-warning {
+  background: #f7b600;
+  box-shadow: 0 0 0 2px rgba(247, 182, 0, 0.2);
+}
+
+.status-dot-danger {
+  background: #d32f2f;
+  box-shadow: 0 0 0 2px rgba(211, 47, 47, 0.2);
+}
+
+/* Glass morphism - subtle for Visa professional look */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(26, 31, 113, 0.08);
+}
+
+.dark .glass {
+  background: rgba(22, 27, 34, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }

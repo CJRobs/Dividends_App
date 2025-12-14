@@ -8,7 +8,6 @@ from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime
 from typing import List
 import pandas as pd
-import numpy as np
 
 from app.models.portfolio import (
     PortfolioSummary,
@@ -16,7 +15,9 @@ from app.models.portfolio import (
     RecentDividend,
     TimeSeriesData,
     ChartData,
-    OverviewResponse
+    OverviewResponse,
+    AnnualStats,
+    DividendStreakInfo
 )
 from app.config import get_settings, format_currency
 from app.services.data_processor import (
@@ -26,31 +27,10 @@ from app.services.data_processor import (
     get_recent_dividends,
     safe_divide
 )
+from app.dependencies import get_data
+from app.utils import to_python_type, cached_response
 
 router = APIRouter()
-
-
-def to_python_type(value):
-    """Convert numpy/pandas types to native Python types."""
-    if pd.isna(value):
-        return None
-    if isinstance(value, (np.integer, np.int64, np.int32)):
-        return int(value)
-    if isinstance(value, (np.floating, np.float64, np.float32)):
-        return float(value)
-    if isinstance(value, (np.bool_, bool)):
-        return bool(value)
-    if isinstance(value, (np.str_, str)):
-        return str(value)
-    if isinstance(value, pd.Timestamp):
-        return value.to_pydatetime()
-    return value
-
-
-def get_data():
-    """Dependency to get data from main app cache."""
-    from app.main import get_data as _get_data
-    return _get_data()
 
 
 @router.get("/summary", response_model=PortfolioSummary)
@@ -256,6 +236,245 @@ async def get_recent_dividends_endpoint(limit: int = 10, data: tuple = Depends(g
         ))
 
     return result
+
+
+@router.get("/yoy-comparison")
+async def get_yoy_comparison(data: tuple = Depends(get_data)):
+    """
+    Get year-over-year comparison data for charts.
+
+    Returns monthly totals for each year to enable YoY comparison.
+    """
+    df, _ = data
+
+    if df.empty:
+        raise HTTPException(status_code=404, detail="No dividend data available")
+
+    # Get all years in the data
+    years = sorted(df["Year"].unique())
+
+    # Create monthly totals for each year
+    from app.config import MONTH_NAMES
+
+    result = {
+        "years": [],
+        "months": list(MONTH_NAMES.values()),
+        "data": {}
+    }
+
+    for year in years:
+        year_df = df[df["Year"] == year]
+        monthly = year_df.groupby("Month")["Total"].sum()
+
+        # Fill in all 12 months
+        monthly_values = [float(monthly.get(m, 0)) for m in range(1, 13)]
+        result["data"][str(int(year))] = monthly_values
+        result["years"].append(int(year))
+
+    return result
+
+
+@router.get("/annual-stats", response_model=List[AnnualStats])
+@cached_response(ttl_minutes=5)
+async def get_annual_stats(data: tuple = Depends(get_data)):
+    """
+    Get annual statistics for each year.
+
+    Returns total, count, average, and growth for each year.
+    """
+    df, _ = data
+
+    if df.empty:
+        raise HTTPException(status_code=404, detail="No dividend data available")
+
+    # Aggregate by year
+    yearly = df.groupby("Year").agg({
+        "Total": ["sum", "count", "mean"],
+        "Ticker": "nunique"
+    }).reset_index()
+
+    yearly.columns = ["year", "total", "count", "average", "unique_stocks"]
+    yearly = yearly.sort_values("year")
+
+    # Calculate year-over-year growth
+    yearly["growth"] = yearly["total"].pct_change() * 100
+
+    result = []
+    for _, row in yearly.iterrows():
+        result.append(AnnualStats(
+            year=int(row["year"]),
+            total=float(row["total"]),
+            count=int(row["count"]),
+            average=float(row["average"]),
+            unique_stocks=int(row["unique_stocks"]),
+            growth=float(row["growth"]) if pd.notna(row["growth"]) else None
+        ))
+
+    return result
+
+
+@router.get("/dividend-streak", response_model=DividendStreakInfo)
+@cached_response(ttl_minutes=5)
+async def get_dividend_streak(data: tuple = Depends(get_data)):
+    """
+    Get dividend streak information - consecutive months with dividends.
+    """
+    df, _ = data
+
+    if df.empty:
+        return DividendStreakInfo(
+            current_streak=0,
+            longest_streak=0,
+            months_with_dividends=0,
+            total_months_span=0
+        )
+
+    # Get unique months with dividends - work on a copy to avoid modifying cached data
+    df_copy = df.copy()
+    df_copy["YearMonth"] = df_copy["Time"].dt.to_period("M")
+    months_with_divs = df_copy["YearMonth"].unique()
+
+    # Sort months
+    months_sorted = sorted(months_with_divs)
+
+    # Calculate streaks
+    current_streak = 0
+    longest_streak = 0
+    temp_streak = 1
+
+    for i in range(1, len(months_sorted)):
+        # Check if consecutive
+        if (months_sorted[i] - months_sorted[i-1]).n == 1:
+            temp_streak += 1
+        else:
+            longest_streak = max(longest_streak, temp_streak)
+            temp_streak = 1
+
+    longest_streak = max(longest_streak, temp_streak)
+
+    # Calculate current streak (from most recent month backwards)
+    if len(months_sorted) > 0:
+        current_month = pd.Period(datetime.now(), freq="M")
+        if months_sorted[-1] == current_month or months_sorted[-1] == current_month - 1:
+            current_streak = 1
+            for i in range(len(months_sorted) - 2, -1, -1):
+                if (months_sorted[i+1] - months_sorted[i]).n == 1:
+                    current_streak += 1
+                else:
+                    break
+
+    return DividendStreakInfo(
+        current_streak=current_streak,
+        longest_streak=longest_streak,
+        months_with_dividends=len(months_with_divs),
+        total_months_span=(months_sorted[-1] - months_sorted[0]).n + 1 if len(months_sorted) > 1 else 1
+    )
+
+
+@router.get("/distribution")
+async def get_distribution_analysis(data: tuple = Depends(get_data)):
+    """
+    Get dividend distribution and analysis data.
+
+    Returns:
+    - portfolio_allocation: Top 10 stocks + Others grouped
+    - monthly_totals: Dividends by calendar month (Jan-Dec) across all years
+    - top_stocks_horizontal: Top 10 for horizontal bar chart
+    - recent_trend: Last 12 months of dividend data
+    - summary_stats: Additional statistics
+    """
+    df, monthly_data = data
+    from app.config import MONTH_NAMES
+
+    if df.empty:
+        raise HTTPException(status_code=404, detail="No dividend data available")
+
+    # Portfolio allocation (Top 10 + Others)
+    stock_totals = df.groupby(["Ticker", "Name"])["Total"].sum().reset_index()
+    stock_totals = stock_totals.sort_values("Total", ascending=False)
+
+    top_10 = stock_totals.head(10)
+    others_total = stock_totals.iloc[10:]["Total"].sum() if len(stock_totals) > 10 else 0
+
+    allocation = []
+    for _, row in top_10.iterrows():
+        allocation.append({
+            "name": row["Ticker"],
+            "value": float(row["Total"]),
+            "fullName": row["Name"]
+        })
+
+    if others_total > 0:
+        allocation.append({
+            "name": "Others",
+            "value": float(others_total),
+            "fullName": f"Other {len(stock_totals) - 10} stocks"
+        })
+
+    # Monthly totals across ALL years (Jan-Dec aggregated)
+    monthly_all_years = df.groupby("Month")["Total"].sum().reset_index()
+    monthly_totals = []
+    for month_num in range(1, 13):
+        month_data = monthly_all_years[monthly_all_years["Month"] == month_num]
+        total = float(month_data["Total"].iloc[0]) if not month_data.empty else 0.0
+        monthly_totals.append({
+            "month": MONTH_NAMES[month_num][:3],
+            "monthFull": MONTH_NAMES[month_num],
+            "value": total
+        })
+
+    # Top 10 stocks for horizontal bar (sorted for display)
+    top_stocks_h = []
+    for _, row in top_10.iterrows():
+        top_stocks_h.append({
+            "ticker": row["Ticker"],
+            "name": row["Name"],
+            "total": float(row["Total"])
+        })
+
+    # Recent 12 months trend
+    df_sorted = df.sort_values("Time")
+    df_sorted["YearMonth"] = df_sorted["Time"].dt.to_period("M")
+    monthly_recent = df_sorted.groupby("YearMonth")["Total"].sum()
+
+    # Get last 12 months
+    recent_periods = sorted(monthly_recent.index)[-12:]
+    recent_trend = []
+    for period in recent_periods:
+        recent_trend.append({
+            "date": str(period),
+            "label": period.strftime("%b %Y"),
+            "value": float(monthly_recent[period])
+        })
+
+    # Summary statistics
+    total_dividends = float(df["Total"].sum())
+    monthly_avg = float(monthly_recent.mean()) if len(monthly_recent) > 0 else 0
+    best_month = monthly_recent.idxmax() if len(monthly_recent) > 0 else None
+    best_month_value = float(monthly_recent.max()) if len(monthly_recent) > 0 else 0
+
+    # YoY growth calculation
+    current_year = datetime.now().year
+    prev_year = current_year - 1
+    cy_total = float(df[df["Year"] == current_year]["Total"].sum())
+    py_total = float(df[df["Year"] == prev_year]["Total"].sum())
+    yoy_growth = ((cy_total - py_total) / py_total * 100) if py_total > 0 else None
+
+    summary_stats = {
+        "total_lifetime": total_dividends,
+        "monthly_average": monthly_avg,
+        "best_month": str(best_month) if best_month else None,
+        "best_month_value": best_month_value,
+        "yoy_growth": yoy_growth
+    }
+
+    return {
+        "portfolio_allocation": allocation,
+        "monthly_totals": monthly_totals,
+        "top_stocks_horizontal": top_stocks_h,
+        "recent_trend": recent_trend,
+        "summary_stats": summary_stats
+    }
 
 
 @router.get("/", response_model=OverviewResponse)

@@ -1,8 +1,0 @@
-Action,Time,ISIN,Ticker,Name,No. of shares,Price / share,Currency (Price / share),Exchange rate,Total,Currency (Total),Withholding tax,Currency (Withholding tax)
-Dividend (Dividend),2025-10-03 12:29:25,GB0003718474,GAW,"Games Workshop",7.0000000000,55.000000,GBX,Not available,3.85,"GBP",0.00,GBX
-Dividend (Dividend),2025-10-07 11:27:03,GB00BYMKY695,JGGI,"JPMorgan Global Growth & Income",15.0000000000,5.750000,GBX,Not available,0.86,"GBP",0.00,GBX
-Dividend (Dividend),2025-10-07 11:28:35,IE000U9J8HX9,JEQP,"JPMorgan Nasdaq Equity Premium Income Active (Dist)",150.0000000000,13.334819,GBX,Not available,20.00,"GBP",0.00,GBX
-Dividend (Dividend),2025-10-09 11:56:44,US9256521090,VICI,"VICI Properties",40.0000000000,0.382500,USD,Not available,11.42,"GBP",2.70,USD
-Dividend (Dividend),2025-10-09 11:58:38,US79466L3024,CRM,"Salesforce",5.0500000000,0.353600,USD,Not available,1.33,"GBP",0.32,USD
-Dividend (Dividend),2025-10-10 08:49:29,IE00BM8R0J59,QYLP,"Global X Nasdaq 100 Covered Call",200.0000000000,0.116936,GBP,Not available,23.39,"GBP",0.00,GBP
-Dividend (Dividend),2025-10-10 08:57:55,GB00B63QSB39,GRG,"Greggs",35.0000000000,19.000000,GBX,Not available,6.65,"GBP",0.00,GBX

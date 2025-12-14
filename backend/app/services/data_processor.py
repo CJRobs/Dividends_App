@@ -22,15 +22,8 @@ def parse_datetime(column: pd.Series) -> pd.Series:
     Returns:
         Pandas Series with parsed datetime values
     """
-    try:
-        return pd.to_datetime(column, format="%Y-%m-%d %H:%M:%S", dayfirst=True)
-    except ValueError:
-        pass
-    try:
-        return pd.to_datetime(column, format="%d/%m/%Y %H:%M", dayfirst=True)
-    except ValueError:
-        pass
-    return pd.to_datetime(column, dayfirst=True, errors="coerce")
+    # Use mixed format parsing with dayfirst=True to handle various date formats
+    return pd.to_datetime(column, format='mixed', dayfirst=True, errors="coerce")
 
 
 def load_data(data_path: str) -> pd.DataFrame:

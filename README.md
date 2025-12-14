@@ -1,187 +1,153 @@
 # Dividend Portfolio Dashboard
 
-A Streamlit app I built to track and analyze my dividend investments. It helps me understand my portfolio performance and find new dividend stocks to invest in.
+A modern web application for tracking and analyzing dividend investments. Built with Next.js 15, FastAPI, and professional charting components.
 
-## What it does
+## Features
 
-- **Portfolio Overview**: Shows your current holdings and how they're performing
-- **Monthly Analysis**: Breaks down your dividend income by month and spots trends
-- **Stock Analysis**: Compare individual stocks and see which ones are working best
-- **Dividend Screener**: Find new dividend stocks using Alpha Vantage data
-- **Forecast**: Predict future dividend income based on your current holdings
-- **Mobile-friendly**: Works well on phones and tablets
-- **Secure**: Keeps your API keys safe in environment variables
+- **Portfolio Overview**: Real-time summary of holdings, performance metrics, and recent dividends
+- **Monthly Analysis**: Year-over-year comparisons, heatmaps, and expense coverage calculator
+- **Stock Analysis**: Period breakdowns, concentration risk analysis, and individual company deep-dives
+- **Dividend Screener**: Research new stocks with Alpha Vantage data (coming soon)
+- **Forecast**: ML-powered dividend predictions with multiple models (coming soon)
+- **PDF Reports**: Generate professional monthly, quarterly, and annual reports (coming soon)
+
+## Tech Stack
+
+**Frontend:**
+- Next.js 15 with React 19
+- TypeScript
+- Tailwind CSS 4
+- shadcn/ui components
+- Recharts for data visualization
+- TanStack React Query for data fetching
+
+**Backend:**
+- FastAPI with Python 3.11+
+- Pydantic for data validation
+- Pandas/NumPy for data processing
 
 ## Getting Started
 
 ### Prerequisites
 
-- Python 3.8 or higher
-- Alpha Vantage API key (free at [alphavantage.co](https://www.alphavantage.co/support/#api-key))
+- Node.js 18+
+- Python 3.11+
+- pip
 
-### Installation
+### Quick Start
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd dividends
-   ```
+```bash
+# Start the application
+./start.sh
+```
 
-2. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
+Or start each service manually:
 
-3. **Configure environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env file with your API keys and settings
-   ```
+```bash
+# Terminal 1 - Backend
+cd backend
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
 
-4. **Run the application**
-   ```bash
-   streamlit run dividend_app.py
-   ```
+# Terminal 2 - Frontend
+cd frontend
+npm install
+npm run dev
+```
+
+The app will be available at:
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8000
+- API Docs: http://localhost:8000/docs
 
 ## Configuration
 
 ### Environment Variables
 
-Create a `.env` file in the project root:
-
+**Backend** (`backend/.env`):
 ```env
-# Required
 ALPHA_VANTAGE_API_KEY=your_api_key_here
-
-# Optional (with defaults)
-DEFAULT_CURRENCY=GBP
-DEFAULT_THEME=Light
-DEFAULT_FORECAST_MONTHS=12
-CACHE_TTL_HOURS=1
+DATA_PATH=../data/dividends.csv
 ```
 
-### Data Sources
+**Frontend** (`frontend/.env.local`):
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
 
-The application expects dividend data in CSV format in the `dividends/` directory. The data should include columns:
-- `Time`: Date of dividend payment
+### Data Format
+
+Place your dividend data in `data/dividends.csv` with these columns:
+- `Time`: Date of dividend payment (YYYY-MM-DD)
 - `Name`: Company/stock name
+- `Ticker`: Stock ticker symbol
 - `Total`: Dividend amount
+- `Account Type`: ISA or GIA
 
-## How it's organized
+## Project Structure
 
 ```
 dividends/
-├── dividend_app.py          # Main application entry point
-├── config.py               # Configuration management
-├── utils.py                # Utility functions and common code
-├── requirements.txt        # Python dependencies
-├── .env.example           # Environment variables template
-├── static/
-│   └── styles.css         # Enhanced responsive CSS
-├── tabs/                  # Tab modules
-│   ├── __init__.py       # Package initialization
-│   ├── overview.py       # Portfolio overview tab
-│   ├── monthly_analysis.py  # Monthly analysis tab
-│   ├── stock_analysis.py    # Stock analysis tab
-│   ├── dividend_screener.py # Dividend screening tab
-│   └── forecast.py          # Forecasting tab
-└── dividends/             # Data directory
-    └── *.csv             # Dividend data files
+├── backend/                 # FastAPI backend
+│   └── app/
+│       ├── main.py         # Application entry
+│       ├── config.py       # Configuration
+│       ├── api/            # API endpoints
+│       ├── models/         # Pydantic models
+│       └── services/       # Business logic
+│
+├── frontend/               # Next.js frontend
+│   └── src/
+│       ├── app/           # Pages (App Router)
+│       ├── components/    # React components
+│       ├── hooks/         # Custom hooks
+│       ├── lib/           # Utilities
+│       └── types/         # TypeScript types
+│
+├── data/                   # Dividend CSV files
+├── original/               # Archived Streamlit app
+├── start.sh               # Quick start script
+└── README.md
 ```
 
-## Development Notes
+## API Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/overview` | Portfolio summary and metrics |
+| `GET /api/monthly/` | Monthly analysis data |
+| `GET /api/monthly/heatmap` | Year x Month heatmap |
+| `GET /api/monthly/coverage` | Expense coverage calculator |
+| `GET /api/stocks/` | Stock analysis overview |
+| `GET /api/stocks/{ticker}` | Individual stock details |
+| `GET /api/stocks/concentration` | Portfolio concentration risk |
+
+## Development
 
 ### Code Quality
 
-I tried to keep the code clean and well-organized:
-- Type hints everywhere to make development easier
-- Good error handling so users get helpful messages
-- Split into modules so it's easier to work with
-- Mobile-first design that looks good on any device
-- Secure API key handling
+- TypeScript strict mode enabled
+- ESLint + Prettier for frontend
+- Pydantic validation for backend
+- Type hints throughout Python code
 
 ### Adding Features
 
-1. Put new features in the right module
-2. Document your code well
-3. Update config if you add new settings
-4. Test on different screen sizes
+1. Create backend endpoint in `backend/app/api/`
+2. Add Pydantic models in `backend/app/models/`
+3. Create frontend page in `frontend/src/app/`
+4. Add React Query hook in `frontend/src/hooks/`
 
-### Performance
+## Original Streamlit App
 
-A few things I did to keep it fast:
-- Caching with Streamlit's `@st.cache_data`
-- Only load data when needed
-- Efficient pandas operations
-- Respect API rate limits
+The original Streamlit implementation is preserved in the `original/` folder for reference. To run it:
 
-## Customization
-
-### Styling
-
-You can change how it looks by editing `static/styles.css`:
-- Colors and themes
-- How it responds to different screen sizes
-- Individual component styles
-- Dark mode settings
-
-### Adding Data Sources
-
-1. Update the `load_data()` function in `utils.py`
-2. Handle any new data format requirements
-3. Add caching for the new data
-
-### New APIs
-
-To add other financial data APIs:
-- Look at how `dividend_screener.py` does it
-- Add your settings to `config.py`
-- Make sure errors are handled gracefully
-
-## Troubleshooting
-
-### Common Issues
-
-**API Key Errors**
-- Ensure your `.env` file exists and contains a valid API key
-- Check API key permissions and rate limits
-
-**Data Loading Issues**
-- Verify CSV files are in the correct format
-- Check file permissions and paths
-
-**Performance Issues**
-- Clear Streamlit cache: Menu → Clear Cache
-- Reduce data size or adjust cache TTL
-
-### Debug Mode
-
-Run with debug logging:
 ```bash
-streamlit run dividend_app.py --logger.level=debug
+cd original
+pip install -r ../requirements.txt
+streamlit run dividend_app.py
 ```
-
-## Tips
-
-1. **Data Quality**: Make sure your dividend CSV files are clean and consistent
-2. **API Limits**: Alpha Vantage free tier allows 5 calls per minute, so be patient
-3. **Browser**: Works best with modern browsers (Chrome, Firefox, Safari, Edge)
-4. **Mobile**: Everything should work fine on your phone or tablet
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes with proper documentation
-4. Test thoroughly
-5. Submit a pull request
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Thanks
-
-- [Streamlit](https://streamlit.io/) for the amazing framework
-- [Alpha Vantage](https://www.alphavantage.co/) for financial data API
-- [Plotly](https://plotly.com/) for interactive visualizations
+MIT License - see LICENSE file for details.
