@@ -1,7 +1,8 @@
 'use client';
 
 /**
- * Sidebar navigation component.
+ * Sidebar navigation component - Wealth Observatory Design
+ * Elegant, dark sidebar with refined navigation and visual polish
  */
 
 import Link from 'next/link';
@@ -14,19 +15,21 @@ import {
   TrendingUp,
   FileText,
   Menu,
-  X
+  X,
+  Sparkles,
+  ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { usePortfolioStore } from '@/store/portfolioStore';
 
 const navigation = [
-  { name: 'Overview', href: '/', icon: BarChart3 },
-  { name: 'Monthly Analysis', href: '/monthly', icon: Calendar },
-  { name: 'Stock Analysis', href: '/stocks', icon: Building2 },
-  { name: 'Dividend Screener', href: '/screener', icon: Search },
-  { name: 'Forecast', href: '/forecast', icon: TrendingUp },
-  { name: 'Reports', href: '/reports', icon: FileText },
+  { name: 'Overview', href: '/', icon: BarChart3, description: 'Portfolio summary' },
+  { name: 'Monthly', href: '/monthly', icon: Calendar, description: 'Monthly breakdown' },
+  { name: 'Stocks', href: '/stocks', icon: Building2, description: 'Stock analysis' },
+  { name: 'Screener', href: '/screener', icon: Search, description: 'Research stocks' },
+  { name: 'Forecast', href: '/forecast', icon: TrendingUp, description: 'Future projections' },
+  { name: 'Reports', href: '/reports', icon: FileText, description: 'Generate PDFs' },
 ];
 
 export function Sidebar() {
@@ -41,29 +44,56 @@ export function Sidebar() {
           variant="outline"
           size="icon"
           onClick={toggleSidebar}
-          className="bg-background"
+          className="bg-card/80 backdrop-blur-md border-border/50 shadow-lg"
         >
-          {sidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+          {sidebarOpen ? (
+            <X className="h-4 w-4" />
+          ) : (
+            <Menu className="h-4 w-4" />
+          )}
         </Button>
       </div>
 
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-40 w-64 bg-card border-r border-border transition-transform duration-300 ease-in-out lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-40 w-72 transition-all duration-500 ease-out lg:translate-x-0',
+          'bg-gradient-to-b from-sidebar via-sidebar to-sidebar/95',
+          'border-r border-sidebar-border/50',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        <div className="flex flex-col h-full">
-          {/* Logo/Title */}
-          <div className="flex items-center h-16 px-6 border-b border-border">
-            <BarChart3 className="h-6 w-6 text-primary mr-2" />
-            <h1 className="text-lg font-semibold">Dividend Dashboard</h1>
+        {/* Decorative gradient orb */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-sidebar-primary/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-20 left-0 w-24 h-24 bg-sidebar-primary/5 rounded-full blur-2xl pointer-events-none" />
+
+        <div className="relative flex flex-col h-full">
+          {/* Logo/Brand Header */}
+          <div className="flex items-center gap-3 h-20 px-6 border-b border-sidebar-border/30">
+            <div className="relative">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sidebar-primary to-emerald-400 flex items-center justify-center shadow-lg shadow-sidebar-primary/25">
+                <Sparkles className="h-5 w-5 text-sidebar-primary-foreground" />
+              </div>
+              {/* Pulse ring */}
+              <div className="absolute inset-0 rounded-xl bg-sidebar-primary/20 animate-ping" style={{ animationDuration: '3s' }} />
+            </div>
+            <div>
+              <h1 className="text-lg font-semibold text-sidebar-foreground tracking-tight">
+                Dividend
+              </h1>
+              <p className="text-xs text-sidebar-foreground/50 -mt-0.5">
+                Portfolio Tracker
+              </p>
+            </div>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-            {navigation.map((item) => {
+          <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
+            <div className="text-[10px] font-medium text-sidebar-foreground/40 uppercase tracking-wider px-3 mb-3">
+              Navigation
+            </div>
+
+            {navigation.map((item, index) => {
               const isActive = pathname === item.href;
               const Icon = item.icon;
 
@@ -72,30 +102,96 @@ export function Sidebar() {
                   key={item.name}
                   href={item.href}
                   className={cn(
-                    'flex items-center px-4 py-3 text-sm font-medium rounded-md transition-colors',
-                    isActive
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                    'group relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300',
+                    'hover:bg-sidebar-accent/50',
+                    isActive && 'bg-sidebar-accent'
                   )}
                   onClick={() => {
-                    // Close sidebar on mobile after navigation
                     if (window.innerWidth < 1024) {
                       toggleSidebar();
                     }
                   }}
+                  style={{ animationDelay: `${index * 50}ms` }}
                 >
-                  <Icon className="h-5 w-5 mr-3" />
-                  {item.name}
+                  {/* Active indicator */}
+                  <div
+                    className={cn(
+                      'absolute left-0 top-1/2 -translate-y-1/2 w-1 rounded-full transition-all duration-300',
+                      isActive ? 'h-8 bg-sidebar-primary' : 'h-0 bg-transparent group-hover:h-4 group-hover:bg-sidebar-primary/50'
+                    )}
+                  />
+
+                  {/* Icon container */}
+                  <div
+                    className={cn(
+                      'w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-300',
+                      isActive
+                        ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-sidebar-primary/30'
+                        : 'bg-sidebar-accent/30 text-sidebar-foreground/60 group-hover:bg-sidebar-accent group-hover:text-sidebar-foreground'
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </div>
+
+                  {/* Label */}
+                  <div className="flex-1 min-w-0">
+                    <span
+                      className={cn(
+                        'block text-sm font-medium transition-colors duration-300',
+                        isActive ? 'text-sidebar-foreground' : 'text-sidebar-foreground/70 group-hover:text-sidebar-foreground'
+                      )}
+                    >
+                      {item.name}
+                    </span>
+                    <span
+                      className={cn(
+                        'block text-[10px] transition-colors duration-300 truncate',
+                        isActive ? 'text-sidebar-foreground/50' : 'text-sidebar-foreground/30 group-hover:text-sidebar-foreground/50'
+                      )}
+                    >
+                      {item.description}
+                    </span>
+                  </div>
+
+                  {/* Arrow indicator */}
+                  <ChevronRight
+                    className={cn(
+                      'h-4 w-4 transition-all duration-300',
+                      isActive
+                        ? 'text-sidebar-primary opacity-100 translate-x-0'
+                        : 'text-sidebar-foreground/30 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0'
+                    )}
+                  />
                 </Link>
               );
             })}
           </nav>
 
+          {/* Portfolio Status */}
+          <div className="px-4 pb-4">
+            <div className="p-4 rounded-xl bg-gradient-to-br from-sidebar-accent/80 to-sidebar-accent/40 border border-sidebar-border/30">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-[10px] font-medium text-sidebar-foreground/60 uppercase tracking-wider">
+                  Portfolio Active
+                </span>
+              </div>
+              <p className="text-xs text-sidebar-foreground/40 leading-relaxed">
+                Tracking your dividend income in real-time
+              </p>
+            </div>
+          </div>
+
           {/* Footer */}
-          <div className="p-4 border-t border-border">
-            <p className="text-xs text-muted-foreground text-center">
-              Dividend Portfolio v1.0
-            </p>
+          <div className="px-6 py-4 border-t border-sidebar-border/30">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] text-sidebar-foreground/30">
+                Wealth Observatory
+              </p>
+              <p className="text-[10px] text-sidebar-foreground/30 font-mono">
+                v2.0
+              </p>
+            </div>
           </div>
         </div>
       </aside>
@@ -103,7 +199,7 @@ export function Sidebar() {
       {/* Overlay for mobile */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-30 lg:hidden"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden transition-opacity duration-300"
           onClick={toggleSidebar}
         />
       )}

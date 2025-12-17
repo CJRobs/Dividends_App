@@ -1,7 +1,8 @@
 'use client';
 
 /**
- * Main layout wrapper component.
+ * Main layout wrapper component - Wealth Observatory Design
+ * Provides the app shell with sidebar and header
  */
 
 import { ReactNode } from 'react';
@@ -14,14 +15,23 @@ interface LayoutProps {
 
 export function Layout({ children }: LayoutProps) {
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-background">
+      {/* Subtle background gradient */}
+      <div className="fixed inset-0 gradient-mesh pointer-events-none" />
+
+      {/* Noise texture overlay */}
+      <div className="grain-overlay" />
+
       <Sidebar />
 
-      <div className="flex-1 flex flex-col lg:ml-64">
+      <div className="relative flex-1 flex flex-col lg:ml-72">
         <Header />
 
-        <main className="flex-1 overflow-y-auto bg-background p-6">
-          {children}
+        <main className="relative flex-1 overflow-y-auto">
+          {/* Main content area with padding */}
+          <div className="p-6 lg:p-8 max-w-[1600px] mx-auto">
+            {children}
+          </div>
         </main>
       </div>
     </div>

@@ -1,7 +1,8 @@
 'use client';
 
 /**
- * Overview page - Main dashboard view with Plotly charts.
+ * Overview page - Wealth Observatory Dashboard
+ * A stunning, refined dashboard with elegant data visualization
  */
 
 import { Layout } from '@/components/layout/Layout';
@@ -10,9 +11,23 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useOverview } from '@/hooks/usePortfolio';
 import { formatCurrency, formatPercentage, CHART_COLORS } from '@/lib/constants';
 import { usePortfolioStore } from '@/store/portfolioStore';
-import { TrendingUp, TrendingDown, DollarSign, PieChart as PieChartIcon, Calendar, BarChart3, Activity } from 'lucide-react';
+import {
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  PieChart as PieChartIcon,
+  Calendar,
+  BarChart3,
+  Activity,
+  ArrowUpRight,
+  ArrowDownRight,
+  Sparkles,
+  Target,
+  Zap
+} from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
+import { cn } from '@/lib/utils';
 
 // Plotly Charts
 import { PlotlyBarChart } from '@/components/charts/PlotlyBarChart';
@@ -31,6 +46,147 @@ interface DistributionData {
     best_month_value: number;
     yoy_growth: number | null;
   };
+}
+
+// Hero stat component for large display numbers
+function HeroStat({
+  value,
+  label,
+  trend,
+  trendValue,
+  icon: Icon,
+  delay = 0,
+  variant = 'default'
+}: {
+  value: string;
+  label: string;
+  trend?: 'up' | 'down' | 'neutral';
+  trendValue?: string;
+  icon: React.ElementType;
+  delay?: number;
+  variant?: 'default' | 'primary' | 'accent';
+}) {
+  return (
+    <div
+      className={cn(
+        "animate-enter group",
+        `delay-${delay}`
+      )}
+      style={{ animationDelay: `${delay * 75}ms` }}
+    >
+      <Card className="card-hover overflow-hidden h-full">
+        <CardContent className="p-6">
+          <div className="flex items-start justify-between mb-4">
+            <div className={cn(
+              "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110",
+              variant === 'primary' && "bg-primary/10 text-primary",
+              variant === 'accent' && "bg-amber-500/10 text-amber-500",
+              variant === 'default' && "bg-muted text-muted-foreground"
+            )}>
+              <Icon className="h-6 w-6" />
+            </div>
+            {trend && trendValue && (
+              <div className={cn(
+                "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium",
+                trend === 'up' && "bg-emerald-500/10 text-emerald-500",
+                trend === 'down' && "bg-red-500/10 text-red-500",
+                trend === 'neutral' && "bg-muted text-muted-foreground"
+              )}>
+                {trend === 'up' && <ArrowUpRight className="h-3 w-3" />}
+                {trend === 'down' && <ArrowDownRight className="h-3 w-3" />}
+                {trendValue}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-1">
+            <p className={cn(
+              "text-3xl lg:text-4xl font-serif tracking-tight",
+              variant === 'primary' && "text-gradient",
+              variant === 'accent' && "text-gradient-gold"
+            )}>
+              {value}
+            </p>
+            <p className="text-sm text-muted-foreground">{label}</p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Stat card for secondary metrics
+function StatCard({
+  value,
+  label,
+  sublabel,
+  icon: Icon,
+  variant = 'neutral',
+  delay = 0
+}: {
+  value: string;
+  label: string;
+  sublabel?: string;
+  icon: React.ElementType;
+  variant?: 'positive' | 'negative' | 'neutral' | 'accent';
+  delay?: number;
+}) {
+  return (
+    <div
+      className="animate-enter"
+      style={{ animationDelay: `${delay * 75}ms` }}
+    >
+      <div className={cn(
+        "p-4 rounded-xl border transition-all duration-300 hover:border-primary/30",
+        variant === 'positive' && "metric-positive",
+        variant === 'negative' && "metric-negative",
+        variant === 'neutral' && "metric-neutral",
+        variant === 'accent' && "metric-accent",
+        "bg-card"
+      )}>
+        <div className="flex items-center gap-3">
+          <Icon className="h-4 w-4 text-muted-foreground" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-muted-foreground truncate">{label}</p>
+            <p className="text-xl font-semibold tracking-tight">{value}</p>
+            {sublabel && (
+              <p className="text-xs text-muted-foreground mt-0.5">{sublabel}</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Section header component
+function SectionHeader({
+  title,
+  description,
+  icon: Icon,
+  delay = 0
+}: {
+  title: string;
+  description?: string;
+  icon: React.ElementType;
+  delay?: number;
+}) {
+  return (
+    <div
+      className="animate-enter flex items-center gap-4 mb-6"
+      style={{ animationDelay: `${delay * 75}ms` }}
+    >
+      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+        <Icon className="h-5 w-5 text-primary" />
+      </div>
+      <div>
+        <h2 className="text-xl font-serif">{title}</h2>
+        {description && (
+          <p className="text-sm text-muted-foreground">{description}</p>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default function OverviewPage() {
@@ -53,21 +209,25 @@ export default function OverviewPage() {
   if (error) {
     return (
       <Layout>
-        <div className="flex items-center justify-center h-full">
-          <Card className="w-full max-w-md">
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Card className="w-full max-w-md border-destructive/50">
             <CardHeader>
-              <CardTitle className="text-destructive">Error Loading Data</CardTitle>
+              <div className="w-12 h-12 rounded-2xl bg-destructive/10 flex items-center justify-center mb-4">
+                <Zap className="h-6 w-6 text-destructive" />
+              </div>
+              <CardTitle className="text-destructive">Connection Error</CardTitle>
               <CardDescription>
-                Failed to load portfolio data. Please ensure the backend is running.
+                Unable to connect to the portfolio server
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Error: {error instanceof Error ? error.message : 'Unknown error'}
+                {error instanceof Error ? error.message : 'Unknown error occurred'}
               </p>
-              <p className="text-xs text-muted-foreground mt-2">
-                Backend should be running at: http://localhost:8000
-              </p>
+              <div className="p-4 rounded-lg bg-muted font-mono text-xs">
+                <p className="text-muted-foreground mb-2">Start the backend:</p>
+                <code>cd backend && uvicorn app.main:app --reload</code>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -81,452 +241,539 @@ export default function OverviewPage() {
     amount: ytdChart.values?.[i] || 0,
   })) || [];
 
+  const ytdGrowth = summary?.ytd_vs_last_year_percent;
+  const yoyGrowth = distribution?.summary_stats?.yoy_growth;
+
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="space-y-8">
         {/* Page Header */}
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Portfolio Overview</h1>
-          <p className="text-muted-foreground">
-            Track, analyze, and forecast your dividend income
+        <div className="animate-enter">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span>Dashboard</span>
+          </div>
+          <h1 className="text-4xl lg:text-5xl font-serif tracking-tight mb-2">
+            Portfolio Overview
+          </h1>
+          <p className="text-lg text-muted-foreground max-w-2xl">
+            Track your dividend income, analyze performance, and forecast future returns
           </p>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {/* Hero Stats Grid */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {isLoading ? (
             <>
               {[...Array(4)].map((_, i) => (
-                <Card key={`skeleton-${i}`}>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <Card key={`skeleton-${i}`} className="overflow-hidden">
+                  <CardContent className="p-6">
+                    <Skeleton className="h-12 w-12 rounded-2xl mb-4" />
+                    <Skeleton className="h-10 w-32 mb-2" />
                     <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-4 w-4" />
-                  </CardHeader>
-                  <CardContent>
-                    <Skeleton className="h-8 w-32 mb-2" />
-                    <Skeleton className="h-3 w-full" />
                   </CardContent>
                 </Card>
               ))}
             </>
           ) : (
             <>
-              {/* Total Dividends */}
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Dividends</CardTitle>
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {formatCurrency(summary?.total_dividends || 0, currency)}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {summary?.total_count || 0} payments received
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* YTD Dividends */}
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">YTD Dividends</CardTitle>
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {formatCurrency(summary?.total_dividends_ytd || 0, currency)}
-                  </div>
-                  {summary?.ytd_vs_last_year_percent !== undefined && summary?.ytd_vs_last_year_percent !== null && (
-                    <p className={`text-xs flex items-center ${
-                      summary.ytd_vs_last_year_percent >= 0 ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      {summary.ytd_vs_last_year_percent >= 0 ? (
-                        <TrendingUp className="h-3 w-3 mr-1" />
-                      ) : (
-                        <TrendingDown className="h-3 w-3 mr-1" />
-                      )}
-                      {formatPercentage(Math.abs(summary.ytd_vs_last_year_percent))} vs last year
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Unique Stocks */}
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Unique Stocks</CardTitle>
-                  <PieChartIcon className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {summary?.unique_stocks || 0}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Dividend-paying stocks
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Average Dividend */}
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Average Dividend</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {formatCurrency(summary?.average_dividend || 0, currency)}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Per dividend payment
-                  </p>
-                </CardContent>
-              </Card>
+              <HeroStat
+                value={formatCurrency(summary?.total_dividends || 0, currency)}
+                label="Total Dividends Earned"
+                icon={Wallet}
+                variant="primary"
+                delay={1}
+              />
+              <HeroStat
+                value={formatCurrency(summary?.total_dividends_ytd || 0, currency)}
+                label="Year to Date"
+                icon={Calendar}
+                trend={ytdGrowth !== undefined && ytdGrowth !== null ? (ytdGrowth >= 0 ? 'up' : 'down') : undefined}
+                trendValue={ytdGrowth !== undefined && ytdGrowth !== null ? formatPercentage(Math.abs(ytdGrowth)) : undefined}
+                variant="accent"
+                delay={2}
+              />
+              <HeroStat
+                value={String(summary?.unique_stocks || 0)}
+                label="Portfolio Positions"
+                icon={PieChartIcon}
+                delay={3}
+              />
+              <HeroStat
+                value={formatCurrency(summary?.average_dividend || 0, currency)}
+                label="Average Payment"
+                icon={Target}
+                delay={4}
+              />
             </>
           )}
         </div>
 
-        {/* Summary Statistics Card */}
+        {/* Summary Statistics */}
         {distribution?.summary_stats && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="h-5 w-5" />
-                Summary Statistics
-              </CardTitle>
-              <CardDescription>Key performance metrics for your portfolio</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-4">
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Total Lifetime</p>
-                  <p className="text-2xl font-bold">{formatCurrency(distribution.summary_stats.total_lifetime, currency)}</p>
+          <div className="animate-enter" style={{ animationDelay: '375ms' }}>
+            <Card className="overflow-hidden">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                    <Activity className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">Performance Highlights</CardTitle>
+                    <CardDescription>Key metrics at a glance</CardDescription>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Monthly Average</p>
-                  <p className="text-2xl font-bold">{formatCurrency(distribution.summary_stats.monthly_average, currency)}</p>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <StatCard
+                    value={formatCurrency(distribution.summary_stats.total_lifetime, currency)}
+                    label="Lifetime Earnings"
+                    icon={Sparkles}
+                    variant="positive"
+                    delay={6}
+                  />
+                  <StatCard
+                    value={formatCurrency(distribution.summary_stats.monthly_average, currency)}
+                    label="Monthly Average"
+                    icon={Calendar}
+                    variant="neutral"
+                    delay={7}
+                  />
+                  <StatCard
+                    value={formatCurrency(distribution.summary_stats.best_month_value, currency)}
+                    label="Best Month"
+                    sublabel={distribution.summary_stats.best_month || undefined}
+                    icon={TrendingUp}
+                    variant="accent"
+                    delay={8}
+                  />
+                  <StatCard
+                    value={yoyGrowth !== null && yoyGrowth !== undefined ? formatPercentage(yoyGrowth) : 'N/A'}
+                    label="Year-over-Year Growth"
+                    icon={yoyGrowth !== null && yoyGrowth !== undefined && yoyGrowth >= 0 ? TrendingUp : TrendingDown}
+                    variant={yoyGrowth !== null && yoyGrowth !== undefined ? (yoyGrowth >= 0 ? 'positive' : 'negative') : 'neutral'}
+                    delay={9}
+                  />
                 </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Best Month</p>
-                  <p className="text-2xl font-bold">{formatCurrency(distribution.summary_stats.best_month_value, currency)}</p>
-                  <p className="text-xs text-muted-foreground">{distribution.summary_stats.best_month || 'N/A'}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">YoY Growth</p>
-                  <p className={`text-2xl font-bold flex items-center ${
-                    (distribution.summary_stats.yoy_growth ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'
-                  }`}>
-                    {distribution.summary_stats.yoy_growth !== null ? (
-                      <>
-                        {distribution.summary_stats.yoy_growth >= 0 ? (
-                          <TrendingUp className="h-5 w-5 mr-1" />
-                        ) : (
-                          <TrendingDown className="h-5 w-5 mr-1" />
-                        )}
-                        {formatPercentage(Math.abs(distribution.summary_stats.yoy_growth))}
-                      </>
-                    ) : 'N/A'}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         )}
 
-        {/* Dividend Distribution & Analysis Section */}
+        {/* Distribution Charts Section */}
         <div>
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <PieChartIcon className="h-5 w-5" />
-            Dividend Distribution & Analysis
-          </h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            {/* Portfolio Allocation Donut (Top 10 + Others) */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Portfolio Allocation (Top 10 + Others)</CardTitle>
-                <CardDescription>Dividend contribution by stock</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {distLoading ? (
-                  <Skeleton className="h-[400px] w-full" />
-                ) : distribution?.portfolio_allocation && distribution.portfolio_allocation.length > 0 ? (
-                  <PlotlyDonutChart
-                    labels={distribution.portfolio_allocation.map(d => d.name)}
-                    values={distribution.portfolio_allocation.map(d => d.value)}
-                    height={400}
-                    showLegend={true}
-                    textInfo="percent+label"
-                  />
-                ) : (
-                  <div className="h-[400px] flex items-center justify-center text-muted-foreground">
-                    No allocation data available
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+          <SectionHeader
+            title="Dividend Distribution"
+            description="Allocation and monthly breakdown"
+            icon={PieChartIcon}
+            delay={10}
+          />
 
-            {/* Dividend Payments by Month (All Years) */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Dividend Payments by Month</CardTitle>
-                <CardDescription>Total dividends by calendar month (all years)</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {distLoading ? (
-                  <Skeleton className="h-[400px] w-full" />
-                ) : distribution?.monthly_totals && distribution.monthly_totals.length > 0 ? (
-                  <PlotlyBarChart
-                    labels={distribution.monthly_totals.map(d => d.month)}
-                    values={distribution.monthly_totals.map(d => d.value)}
-                    height={400}
-                    orientation="vertical"
-                    yAxisTitle={`Dividend Amount (${currency === 'GBP' ? '£' : '$'})`}
-                  />
-                ) : (
-                  <div className="h-[400px] flex items-center justify-center text-muted-foreground">
-                    No monthly data available
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Growth & Performance Analysis Section */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            Growth & Performance Analysis
-          </h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            {/* Top 10 Dividend Stocks (Horizontal Bar) */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Top 10 Dividend Stocks</CardTitle>
-                <CardDescription>Highest dividend contributors</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {distLoading ? (
-                  <Skeleton className="h-[500px] w-full" />
-                ) : distribution?.top_stocks_horizontal && distribution.top_stocks_horizontal.length > 0 ? (
-                  <PlotlyBarChart
-                    labels={distribution.top_stocks_horizontal.map(d => d.ticker)}
-                    values={distribution.top_stocks_horizontal.map(d => d.total)}
-                    height={500}
-                    orientation="horizontal"
-                    xAxisTitle={`Total Dividends (${currency === 'GBP' ? '£' : '$'})`}
-                  />
-                ) : (
-                  <div className="h-[500px] flex items-center justify-center text-muted-foreground">
-                    No stock data available
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Recent Dividend Trend (Last 12 Months) */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Dividend Trend</CardTitle>
-                <CardDescription>Last 12 months of dividend income</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {distLoading ? (
-                  <Skeleton className="h-[500px] w-full" />
-                ) : distribution?.recent_trend && distribution.recent_trend.length > 0 ? (
-                  <PlotlyLineChart
-                    data={{
-                      x: distribution.recent_trend.map(d => d.label),
-                      y: distribution.recent_trend.map(d => d.value),
-                    }}
-                    height={500}
-                    yAxisTitle={`Dividend Amount (${currency === 'GBP' ? '£' : '$'})`}
-                    showMarkers={true}
-                    curveType="spline"
-                  />
-                ) : (
-                  <div className="h-[500px] flex items-center justify-center text-muted-foreground">
-                    No trend data available
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* YTD Charts Row */}
-        <div className="grid gap-4 md:grid-cols-2">
-          {/* YTD Cumulative Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                YTD Dividend Growth
-              </CardTitle>
-              <CardDescription>Cumulative dividends this year</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <Skeleton className="h-[300px] w-full" />
-              ) : ytdChartData.length > 0 ? (
-                <PlotlyLineChart
-                  data={{
-                    x: ytdChartData.map((d: { date: string }) => d.date),
-                    y: ytdChartData.map((d: { amount: number }) => d.amount),
-                  }}
-                  height={300}
-                  yAxisTitle="Cumulative Dividends"
-                  showMarkers={true}
-                  curveType="spline"
-                />
-              ) : (
-                <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                  No YTD data available
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Monthly Dividends Chart (Current Year) */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
-                Monthly Dividends (This Year)
-              </CardTitle>
-              <CardDescription>Dividends by month this year</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <Skeleton className="h-[300px] w-full" />
-              ) : monthlyChart?.labels && monthlyChart.labels.length > 0 ? (
-                <PlotlyBarChart
-                  labels={monthlyChart.labels.map((m: string) => m.substring(0, 3))}
-                  values={monthlyChart.values || []}
-                  height={300}
-                  orientation="vertical"
-                  yAxisTitle={`Dividends (${currency === 'GBP' ? '£' : '$'})`}
-                />
-              ) : (
-                <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                  No monthly data available
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Top Stocks List and Recent Dividends */}
-        <div className="grid gap-4 md:grid-cols-2">
-          {/* Top Dividend Stocks List */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Top Dividend Stocks</CardTitle>
-              <CardDescription>Your highest dividend-paying stocks</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="space-y-3">
-                  {[...Array(8)].map((_, i) => (
-                    <div key={`stock-skeleton-${i}`} className="flex items-center justify-between">
-                      <Skeleton className="h-4 w-32" />
-                      <Skeleton className="h-4 w-20" />
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Portfolio Allocation Donut */}
+            <div className="animate-enter" style={{ animationDelay: '825ms' }}>
+              <Card className="overflow-hidden h-full">
+                <CardHeader>
+                  <CardTitle className="text-base">Portfolio Allocation</CardTitle>
+                  <CardDescription>Top 10 positions by dividend contribution</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {distLoading ? (
+                    <div className="h-[380px] flex items-center justify-center">
+                      <div className="w-48 h-48 rounded-full border-4 border-muted animate-pulse" />
                     </div>
-                  ))}
-                </div>
-              ) : topStocks && topStocks.length > 0 ? (
-                <div className="space-y-3 max-h-[300px] overflow-y-auto">
-                  {topStocks.slice(0, 10).map((stock: { ticker: string; name: string; total_dividends: number; percentage_of_portfolio: number }, i: number) => (
-                    <div key={stock.ticker} className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
+                  ) : distribution?.portfolio_allocation && distribution.portfolio_allocation.length > 0 ? (
+                    <div className="chart-reveal" style={{ animationDelay: '900ms' }}>
+                      <PlotlyDonutChart
+                        labels={distribution.portfolio_allocation.map(d => d.name)}
+                        values={distribution.portfolio_allocation.map(d => d.value)}
+                        height={380}
+                        showLegend={true}
+                        textInfo="percent+label"
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-[380px] flex flex-col items-center justify-center text-muted-foreground">
+                      <PieChartIcon className="h-12 w-12 mb-4 opacity-20" />
+                      <p>No allocation data available</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Monthly Totals Bar Chart */}
+            <div className="animate-enter" style={{ animationDelay: '900ms' }}>
+              <Card className="overflow-hidden h-full">
+                <CardHeader>
+                  <CardTitle className="text-base">Monthly Distribution</CardTitle>
+                  <CardDescription>Dividends by calendar month (all years)</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {distLoading ? (
+                    <div className="h-[380px] flex items-end justify-around gap-2 p-4">
+                      {[40, 65, 35, 70, 55, 80, 45, 60, 50, 75, 38, 68].map((height, i) => (
                         <div
-                          className="w-2 h-2 rounded-full"
-                          style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }}
+                          key={i}
+                          className="w-full bg-muted rounded-t animate-pulse"
+                          style={{ height: `${height}%` }}
                         />
-                        <div>
-                          <p className="font-medium">{stock.ticker}</p>
-                          <p className="text-xs text-muted-foreground truncate max-w-[150px]">
-                            {stock.name}
+                      ))}
+                    </div>
+                  ) : distribution?.monthly_totals && distribution.monthly_totals.length > 0 ? (
+                    <div className="chart-reveal" style={{ animationDelay: '975ms' }}>
+                      <PlotlyBarChart
+                        labels={distribution.monthly_totals.map(d => d.month)}
+                        values={distribution.monthly_totals.map(d => d.value)}
+                        height={380}
+                        orientation="vertical"
+                        yAxisTitle={`Dividends (${currency === 'GBP' ? '£' : '$'})`}
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-[380px] flex flex-col items-center justify-center text-muted-foreground">
+                      <BarChart3 className="h-12 w-12 mb-4 opacity-20" />
+                      <p>No monthly data available</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+
+        {/* Growth Analysis Section */}
+        <div>
+          <SectionHeader
+            title="Growth & Performance"
+            description="Track your dividend income growth"
+            icon={TrendingUp}
+            delay={14}
+          />
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Top Stocks Horizontal Bar */}
+            <div className="animate-enter" style={{ animationDelay: '1125ms' }}>
+              <Card className="overflow-hidden h-full">
+                <CardHeader>
+                  <CardTitle className="text-base">Top Contributors</CardTitle>
+                  <CardDescription>Your highest dividend-paying stocks</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {distLoading ? (
+                    <div className="h-[450px] space-y-4 p-4">
+                      {[...Array(10)].map((_, i) => (
+                        <div key={i} className="flex items-center gap-3">
+                          <Skeleton className="w-16 h-4" />
+                          <Skeleton className="flex-1 h-6 rounded" style={{ width: `${100 - i * 8}%` }} />
+                        </div>
+                      ))}
+                    </div>
+                  ) : distribution?.top_stocks_horizontal && distribution.top_stocks_horizontal.length > 0 ? (
+                    <div className="chart-reveal" style={{ animationDelay: '1200ms' }}>
+                      <PlotlyBarChart
+                        labels={distribution.top_stocks_horizontal.map(d => d.ticker)}
+                        values={distribution.top_stocks_horizontal.map(d => d.total)}
+                        height={450}
+                        orientation="horizontal"
+                        xAxisTitle={`Total Dividends (${currency === 'GBP' ? '£' : '$'})`}
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-[450px] flex flex-col items-center justify-center text-muted-foreground">
+                      <BarChart3 className="h-12 w-12 mb-4 opacity-20" />
+                      <p>No stock data available</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Recent Trend Line Chart */}
+            <div className="animate-enter" style={{ animationDelay: '1200ms' }}>
+              <Card className="overflow-hidden h-full">
+                <CardHeader>
+                  <CardTitle className="text-base">Recent Trend</CardTitle>
+                  <CardDescription>Last 12 months of dividend income</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {distLoading ? (
+                    <div className="h-[450px] flex items-center justify-center">
+                      <div className="w-full h-32 relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-muted via-muted/50 to-muted animate-pulse rounded" />
+                      </div>
+                    </div>
+                  ) : distribution?.recent_trend && distribution.recent_trend.length > 0 ? (
+                    <div className="chart-reveal" style={{ animationDelay: '1275ms' }}>
+                      <PlotlyLineChart
+                        data={{
+                          x: distribution.recent_trend.map(d => d.label),
+                          y: distribution.recent_trend.map(d => d.value),
+                        }}
+                        height={450}
+                        yAxisTitle={`Dividends (${currency === 'GBP' ? '£' : '$'})`}
+                        showMarkers={true}
+                        curveType="spline"
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-[450px] flex flex-col items-center justify-center text-muted-foreground">
+                      <TrendingUp className="h-12 w-12 mb-4 opacity-20" />
+                      <p>No trend data available</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+
+        {/* YTD Progress Section */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* YTD Cumulative Chart */}
+          <div className="animate-enter" style={{ animationDelay: '1350ms' }}>
+            <Card className="overflow-hidden">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <BarChart3 className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">YTD Cumulative Growth</CardTitle>
+                    <CardDescription>Running total this year</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <Skeleton className="h-[280px] w-full rounded-lg" />
+                ) : ytdChartData.length > 0 ? (
+                  <div className="chart-reveal" style={{ animationDelay: '1425ms' }}>
+                    <PlotlyLineChart
+                      data={{
+                        x: ytdChartData.map((d: { date: string }) => d.date),
+                        y: ytdChartData.map((d: { amount: number }) => d.amount),
+                      }}
+                      height={280}
+                      yAxisTitle="Cumulative Dividends"
+                      showMarkers={true}
+                      curveType="spline"
+                    />
+                  </div>
+                ) : (
+                  <div className="h-[280px] flex flex-col items-center justify-center text-muted-foreground">
+                    <TrendingUp className="h-10 w-10 mb-3 opacity-20" />
+                    <p className="text-sm">No YTD data available</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Monthly Dividends Current Year */}
+          <div className="animate-enter" style={{ animationDelay: '1425ms' }}>
+            <Card className="overflow-hidden">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                    <Calendar className="h-4 w-4 text-amber-500" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">Monthly Breakdown</CardTitle>
+                    <CardDescription>Dividends by month this year</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <Skeleton className="h-[280px] w-full rounded-lg" />
+                ) : monthlyChart?.labels && monthlyChart.labels.length > 0 ? (
+                  <div className="chart-reveal" style={{ animationDelay: '1500ms' }}>
+                    <PlotlyBarChart
+                      labels={monthlyChart.labels.map((m: string) => m.substring(0, 3))}
+                      values={monthlyChart.values || []}
+                      height={280}
+                      orientation="vertical"
+                      yAxisTitle={`Dividends (${currency === 'GBP' ? '£' : '$'})`}
+                    />
+                  </div>
+                ) : (
+                  <div className="h-[280px] flex flex-col items-center justify-center text-muted-foreground">
+                    <BarChart3 className="h-10 w-10 mb-3 opacity-20" />
+                    <p className="text-sm">No monthly data available</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Top Stocks & Recent Dividends Lists */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Top Dividend Stocks List */}
+          <div className="animate-enter" style={{ animationDelay: '1500ms' }}>
+            <Card className="overflow-hidden">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">Top Performers</CardTitle>
+                    <CardDescription>Highest dividend-paying positions</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="space-y-3">
+                    {[...Array(6)].map((_, i) => (
+                      <div key={`stock-skeleton-${i}`} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                        <div className="flex items-center gap-3">
+                          <Skeleton className="w-8 h-8 rounded-lg" />
+                          <div>
+                            <Skeleton className="h-4 w-16 mb-1" />
+                            <Skeleton className="h-3 w-24" />
+                          </div>
+                        </div>
+                        <Skeleton className="h-5 w-20" />
+                      </div>
+                    ))}
+                  </div>
+                ) : topStocks && topStocks.length > 0 ? (
+                  <div className="space-y-2 max-h-[360px] overflow-y-auto pr-2">
+                    {topStocks.slice(0, 10).map((stock: { ticker: string; name: string; total_dividends: number; percentage_of_portfolio: number }, i: number) => (
+                      <div
+                        key={stock.ticker}
+                        className="flex items-center justify-between p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors duration-200 group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold text-white transition-transform duration-200 group-hover:scale-105"
+                            style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }}
+                          >
+                            {stock.ticker.substring(0, 2)}
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">{stock.ticker}</p>
+                            <p className="text-xs text-muted-foreground truncate max-w-[140px]">
+                              {stock.name}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-sm">
+                            {formatCurrency(stock.total_dividends, currency)}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatPercentage(stock.percentage_of_portfolio, 1)}
                           </p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold">
-                          {formatCurrency(stock.total_dividends, currency)}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatPercentage(stock.percentage_of_portfolio, 1)}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No stock data available</p>
-              )}
-            </CardContent>
-          </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-12 text-center text-muted-foreground">
+                    <Sparkles className="h-10 w-10 mx-auto mb-3 opacity-20" />
+                    <p className="text-sm">No stock data available</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
-          {/* Recent Dividends */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Dividends</CardTitle>
-              <CardDescription>Latest dividend payments received</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="space-y-3">
-                  {[...Array(6)].map((_, i) => (
-                    <div key={`recent-skeleton-${i}`} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                      <Skeleton className="h-4 w-32" />
-                      <Skeleton className="h-4 w-20" />
-                    </div>
-                  ))}
+          {/* Recent Dividends List */}
+          <div className="animate-enter" style={{ animationDelay: '1575ms' }}>
+            <Card className="overflow-hidden">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                    <Wallet className="h-4 w-4 text-emerald-500" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">Recent Payments</CardTitle>
+                    <CardDescription>Latest dividend receipts</CardDescription>
+                  </div>
                 </div>
-              ) : recentDividends && recentDividends.length > 0 ? (
-                <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                  {recentDividends.slice(0, 10).map((dividend: { ticker: string; name: string; date: string; amount: number }, idx: number) => (
-                    <div key={`${dividend.ticker}-${idx}`} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                      <div>
-                        <p className="font-medium">{dividend.ticker}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(dividend.date).toLocaleDateString('en-GB', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric'
-                          })}
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="space-y-3">
+                    {[...Array(6)].map((_, i) => (
+                      <div key={`recent-skeleton-${i}`} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                        <div>
+                          <Skeleton className="h-4 w-16 mb-1" />
+                          <Skeleton className="h-3 w-24" />
+                        </div>
+                        <Skeleton className="h-5 w-16" />
+                      </div>
+                    ))}
+                  </div>
+                ) : recentDividends && recentDividends.length > 0 ? (
+                  <div className="space-y-2 max-h-[360px] overflow-y-auto pr-2">
+                    {recentDividends.slice(0, 10).map((dividend: { ticker: string; name: string; date: string; amount: number }, idx: number) => (
+                      <div
+                        key={`${dividend.ticker}-${idx}`}
+                        className="flex items-center justify-between p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors duration-200 group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                            <ArrowUpRight className="h-4 w-4 text-emerald-500" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">{dividend.ticker}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(dividend.date).toLocaleDateString('en-GB', {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric'
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                        <p className="font-semibold text-emerald-500 text-sm">
+                          +{formatCurrency(dividend.amount, currency)}
                         </p>
                       </div>
-                      <p className="font-semibold text-green-400">
-                        +{formatCurrency(dividend.amount, currency)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No recent dividends</p>
-              )}
-            </CardContent>
-          </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-12 text-center text-muted-foreground">
+                    <Wallet className="h-10 w-10 mx-auto mb-3 opacity-20" />
+                    <p className="text-sm">No recent dividends</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
-        {/* Info Card if backend not running */}
+        {/* Backend Not Running Notice */}
         {!isLoading && !data && (
-          <Card className="border-yellow-500">
+          <Card className="border-amber-500/50 bg-amber-500/5 animate-enter" style={{ animationDelay: '300ms' }}>
             <CardHeader>
-              <CardTitle className="text-yellow-600">Backend Not Running</CardTitle>
-              <CardDescription>
-                Start the FastAPI backend to see your dividend data
-              </CardDescription>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                  <Zap className="h-5 w-5 text-amber-500" />
+                </div>
+                <div>
+                  <CardTitle className="text-amber-600 dark:text-amber-400">Backend Not Running</CardTitle>
+                  <CardDescription>
+                    Start the FastAPI server to see your dividend data
+                  </CardDescription>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <p className="text-sm">Run the following commands to start the backend:</p>
-              <pre className="bg-muted p-3 rounded text-xs">
-                cd backend{'\n'}
-                source venv/bin/activate{'\n'}
-                uvicorn app.main:app --reload
-              </pre>
+            <CardContent>
+              <div className="p-4 rounded-xl bg-muted/50 font-mono text-sm">
+                <p className="text-muted-foreground mb-2">Run these commands:</p>
+                <code className="block text-xs leading-relaxed">
+                  cd backend<br />
+                  source venv/bin/activate<br />
+                  uvicorn app.main:app --reload
+                </code>
+              </div>
             </CardContent>
           </Card>
         )}
