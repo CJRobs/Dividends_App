@@ -188,7 +188,7 @@ export function PlotlyForecastChart({
   };
 
   return (
-    <div className={className}>
+    <div className={className} style={{ width: '100%', height }}>
       <Plot
         data={traces}
         layout={layout}
@@ -270,7 +270,7 @@ export function PlotlyProjectionBarChart({
   };
 
   return (
-    <div className={className}>
+    <div className={className} style={{ width: '100%', height }}>
       <Plot
         data={traces}
         layout={layout}

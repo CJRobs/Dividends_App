@@ -68,7 +68,7 @@ export function PlotlyPieChart({
   };
 
   return (
-    <div className={className}>
+    <div className={className} style={{ width: '100%', height }}>
       <Plot
         data={[trace]}
         layout={layout}
@@ -156,7 +156,7 @@ export function PlotlyDonutChart({
   };
 
   return (
-    <div className={className}>
+    <div className={className} style={{ width: '100%', height }}>
       <Plot
         data={[trace]}
         layout={layout}

@@ -13,18 +13,18 @@ import { formatCurrency, formatPercentage, CHART_COLORS } from '@/lib/constants'
 import { usePortfolioStore } from '@/store/portfolioStore';
 import {
   TrendingUp,
-  TrendingDown,
   Wallet,
   PieChart as PieChartIcon,
   Calendar,
   BarChart3,
-  Activity,
   ArrowUpRight,
   ArrowDownRight,
   Sparkles,
   Target,
-  Zap
+  Zap,
+  ExternalLink
 } from 'lucide-react';
+import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -45,6 +45,27 @@ interface DistributionData {
     best_month: string | null;
     best_month_value: number;
     yoy_growth: number | null;
+  };
+  projected_income?: {
+    ytd_total: number;
+    projected_annual: number;
+    last_year_total: number;
+    projected_vs_last_year: number | null;
+    months_elapsed: number;
+  };
+  concentration_risk?: {
+    top_3_percentage: number;
+    top_3_stocks: string[];
+    hhi_index: number;
+    concentration_level: 'Low' | 'Medium' | 'High';
+    warning: string | null;
+    unique_stocks: number;
+  };
+  dividend_streak?: {
+    current_streak: number;
+    longest_streak: number;
+    months_with_dividends: number;
+    consistency_rate: number;
   };
 }
 
@@ -111,50 +132,6 @@ function HeroStat({
           </div>
         </CardContent>
       </Card>
-    </div>
-  );
-}
-
-// Stat card for secondary metrics
-function StatCard({
-  value,
-  label,
-  sublabel,
-  icon: Icon,
-  variant = 'neutral',
-  delay = 0
-}: {
-  value: string;
-  label: string;
-  sublabel?: string;
-  icon: React.ElementType;
-  variant?: 'positive' | 'negative' | 'neutral' | 'accent';
-  delay?: number;
-}) {
-  return (
-    <div
-      className="animate-enter"
-      style={{ animationDelay: `${delay * 75}ms` }}
-    >
-      <div className={cn(
-        "p-4 rounded-xl border transition-all duration-300 hover:border-primary/30",
-        variant === 'positive' && "metric-positive",
-        variant === 'negative' && "metric-negative",
-        variant === 'neutral' && "metric-neutral",
-        variant === 'accent' && "metric-accent",
-        "bg-card"
-      )}>
-        <div className="flex items-center gap-3">
-          <Icon className="h-4 w-4 text-muted-foreground" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm text-muted-foreground truncate">{label}</p>
-            <p className="text-xl font-semibold tracking-tight">{value}</p>
-            {sublabel && (
-              <p className="text-xs text-muted-foreground mt-0.5">{sublabel}</p>
-            )}
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
@@ -242,7 +219,6 @@ export default function OverviewPage() {
   })) || [];
 
   const ytdGrowth = summary?.ytd_vs_last_year_percent;
-  const yoyGrowth = distribution?.summary_stats?.yoy_growth;
 
   return (
     <Layout>
@@ -262,10 +238,10 @@ export default function OverviewPage() {
         </div>
 
         {/* Hero Stats Grid */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {isLoading ? (
             <>
-              {[...Array(4)].map((_, i) => (
+              {[...Array(3)].map((_, i) => (
                 <Card key={`skeleton-${i}`} className="overflow-hidden">
                   <CardContent className="p-6">
                     <Skeleton className="h-12 w-12 rounded-2xl mb-4" />
@@ -294,72 +270,16 @@ export default function OverviewPage() {
                 delay={2}
               />
               <HeroStat
-                value={String(summary?.unique_stocks || 0)}
-                label="Portfolio Positions"
-                icon={PieChartIcon}
-                delay={3}
-              />
-              <HeroStat
                 value={formatCurrency(summary?.average_dividend || 0, currency)}
                 label="Average Payment"
                 icon={Target}
-                delay={4}
+                delay={3}
               />
             </>
           )}
         </div>
 
-        {/* Summary Statistics */}
-        {distribution?.summary_stats && (
-          <div className="animate-enter" style={{ animationDelay: '375ms' }}>
-            <Card className="overflow-hidden">
-              <CardHeader className="pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                    <Activity className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">Performance Highlights</CardTitle>
-                    <CardDescription>Key metrics at a glance</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <StatCard
-                    value={formatCurrency(distribution.summary_stats.total_lifetime, currency)}
-                    label="Lifetime Earnings"
-                    icon={Sparkles}
-                    variant="positive"
-                    delay={6}
-                  />
-                  <StatCard
-                    value={formatCurrency(distribution.summary_stats.monthly_average, currency)}
-                    label="Monthly Average"
-                    icon={Calendar}
-                    variant="neutral"
-                    delay={7}
-                  />
-                  <StatCard
-                    value={formatCurrency(distribution.summary_stats.best_month_value, currency)}
-                    label="Best Month"
-                    sublabel={distribution.summary_stats.best_month || undefined}
-                    icon={TrendingUp}
-                    variant="accent"
-                    delay={8}
-                  />
-                  <StatCard
-                    value={yoyGrowth !== null && yoyGrowth !== undefined ? formatPercentage(yoyGrowth) : 'N/A'}
-                    label="Year-over-Year Growth"
-                    icon={yoyGrowth !== null && yoyGrowth !== undefined && yoyGrowth >= 0 ? TrendingUp : TrendingDown}
-                    variant={yoyGrowth !== null && yoyGrowth !== undefined ? (yoyGrowth >= 0 ? 'positive' : 'negative') : 'neutral'}
-                    delay={9}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+
 
         {/* Distribution Charts Section */}
         <div>
@@ -644,9 +564,10 @@ export default function OverviewPage() {
                 ) : topStocks && topStocks.length > 0 ? (
                   <div className="space-y-2 max-h-[360px] overflow-y-auto pr-2">
                     {topStocks.slice(0, 10).map((stock: { ticker: string; name: string; total_dividends: number; percentage_of_portfolio: number }, i: number) => (
-                      <div
+                      <Link
+                        href={`/stocks?ticker=${encodeURIComponent(stock.ticker)}`}
                         key={stock.ticker}
-                        className="flex items-center justify-between p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors duration-200 group"
+                        className="flex items-center justify-between p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors duration-200 group cursor-pointer"
                       >
                         <div className="flex items-center gap-3">
                           <div
@@ -662,15 +583,18 @@ export default function OverviewPage() {
                             </p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-sm">
-                            {formatCurrency(stock.total_dividends, currency)}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatPercentage(stock.percentage_of_portfolio, 1)}
-                          </p>
+                        <div className="text-right flex items-center gap-2">
+                          <div>
+                            <p className="font-semibold text-sm">
+                              {formatCurrency(stock.total_dividends, currency)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatPercentage(stock.percentage_of_portfolio, 1)}
+                            </p>
+                          </div>
+                          <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 ) : (

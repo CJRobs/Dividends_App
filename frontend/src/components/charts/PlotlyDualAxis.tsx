@@ -122,7 +122,7 @@ export function PlotlyDualAxisChart({
   };
 
   return (
-    <div className={className}>
+    <div className={className} style={{ width: '100%', height }}>
       <Plot
         data={traces}
         layout={layout}
@@ -210,7 +210,7 @@ export function PlotlyCashFlowChart({
   };
 
   return (
-    <div className={className}>
+    <div className={className} style={{ width: '100%', height }}>
       <Plot
         data={traces}
         layout={layout}
@@ -318,7 +318,7 @@ export function PlotlyPayoutRatioChart({
   };
 
   return (
-    <div className={className}>
+    <div className={className} style={{ width: '100%', height }}>
       <Plot
         data={traces}
         layout={layout}

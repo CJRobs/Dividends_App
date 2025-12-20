@@ -99,7 +99,7 @@ export function PlotlyLineChart({
   };
 
   return (
-    <div className={className}>
+    <div className={className} style={{ width: '100%', height }}>
       <Plot
         data={traces}
         layout={layout}
@@ -199,7 +199,7 @@ export function PlotlyScatterWithMA({
   };
 
   return (
-    <div className={className}>
+    <div className={className} style={{ width: '100%', height }}>
       <Plot
         data={traces}
         layout={layout}

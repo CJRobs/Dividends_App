@@ -18,6 +18,12 @@ import {
   PieChart,
   AlertTriangle,
   Info,
+  Shield,
+  Activity,
+  Percent,
+  Scale,
+  Zap,
+  Wallet,
 } from 'lucide-react';
 import { formatPercentage, formatLargeNumber } from '@/lib/constants';
 import api from '@/lib/api';
@@ -78,6 +84,12 @@ interface BalanceSheet {
   total_equity?: number;
   total_debt?: number;
   cash_and_equivalents?: number;
+  current_assets?: number;
+  current_liabilities?: number;
+  inventory?: number;
+  current_ratio?: number;
+  quick_ratio?: number;
+  debt_to_equity?: number;
 }
 
 interface CashFlow {
@@ -88,14 +100,35 @@ interface CashFlow {
   dividend_payout?: number;
 }
 
+interface DividendMetrics {
+  dividend_growth_rate?: number;
+  fcf_coverage_ratio?: number;
+  consecutive_growth_years?: number;
+  dividend_consistency?: string;
+  avg_dividend_amount?: number;
+  total_dividends_paid?: number;
+}
+
+interface RiskFactors {
+  yield_risk?: number;
+  payout_risk?: number;
+  valuation_risk?: number;
+  leverage_risk?: number;
+  volatility_risk?: number;
+  coverage_risk?: number;
+}
+
 interface ScreenerAnalysis {
   overview: CompanyOverview;
   dividends: DividendHistory[];
   income_statements: IncomeStatement[];
   balance_sheets: BalanceSheet[];
   cash_flows: CashFlow[];
+  dividend_metrics?: DividendMetrics;
+  risk_factors?: RiskFactors;
   risk_score?: number;
   risk_level?: string;
+  risk_grade?: string;
   investment_summary?: string;
 }
 
@@ -138,6 +171,32 @@ export default function ScreenerPage() {
       case 'High': return 'destructive';
       default: return 'outline';
     }
+  };
+
+  const getGradeColor = (grade?: string) => {
+    switch (grade) {
+      case 'A': return 'text-green-400 bg-green-400/10';
+      case 'B': return 'text-blue-400 bg-blue-400/10';
+      case 'C': return 'text-yellow-400 bg-yellow-400/10';
+      case 'D': return 'text-orange-400 bg-orange-400/10';
+      case 'F': return 'text-red-400 bg-red-400/10';
+      default: return 'text-muted-foreground bg-muted';
+    }
+  };
+
+  const getRiskFactorColor = (score?: number) => {
+    if (score === undefined) return 'bg-muted';
+    if (score <= 30) return 'bg-green-500';
+    if (score <= 50) return 'bg-yellow-500';
+    if (score <= 70) return 'bg-orange-500';
+    return 'bg-red-500';
+  };
+
+  const getRatioColor = (value?: number, goodThreshold: number = 1.5, badThreshold: number = 1.0) => {
+    if (value === undefined) return 'text-muted-foreground';
+    if (value >= goodThreshold) return 'text-green-400';
+    if (value >= badThreshold) return 'text-yellow-400';
+    return 'text-red-400';
   };
 
   return (
@@ -227,8 +286,8 @@ export default function ScreenerPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                {/* Key Metrics Grid */}
-                <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-6">
+                {/* Key Metrics Grid - Expanded to 12 metrics */}
+                <div className="grid gap-4 grid-cols-2 md:grid-cols-4 lg:grid-cols-6">
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground">Market Cap</p>
                     <p className="text-lg font-semibold">
@@ -269,6 +328,63 @@ export default function ScreenerPage() {
                       ${analysis.overview.fifty_two_week_low?.toFixed(2) || 'N/A'}
                     </p>
                   </div>
+                  {/* New metrics row */}
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Beta</p>
+                    <p className={`text-lg font-semibold ${
+                      analysis.overview.beta && analysis.overview.beta > 1.5
+                        ? 'text-red-400'
+                        : analysis.overview.beta && analysis.overview.beta < 0.8
+                        ? 'text-green-400'
+                        : ''
+                    }`}>
+                      {analysis.overview.beta?.toFixed(2) || 'N/A'}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Forward P/E</p>
+                    <p className="text-lg font-semibold">
+                      {analysis.overview.forward_pe?.toFixed(2) || 'N/A'}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">PEG Ratio</p>
+                    <p className={`text-lg font-semibold ${
+                      analysis.overview.peg_ratio && analysis.overview.peg_ratio < 1
+                        ? 'text-green-400'
+                        : analysis.overview.peg_ratio && analysis.overview.peg_ratio > 2
+                        ? 'text-red-400'
+                        : ''
+                    }`}>
+                      {analysis.overview.peg_ratio?.toFixed(2) || 'N/A'}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Book Value</p>
+                    <p className="text-lg font-semibold">
+                      ${analysis.overview.book_value?.toFixed(2) || 'N/A'}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Payout Ratio</p>
+                    <p className={`text-lg font-semibold ${
+                      analysis.overview.payout_ratio && analysis.overview.payout_ratio > 0.9
+                        ? 'text-red-400'
+                        : analysis.overview.payout_ratio && analysis.overview.payout_ratio < 0.6
+                        ? 'text-green-400'
+                        : 'text-yellow-400'
+                    }`}>
+                      {analysis.overview.payout_ratio
+                        ? formatPercentage(analysis.overview.payout_ratio * 100)
+                        : 'N/A'}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Ex-Dividend</p>
+                    <p className="text-lg font-semibold">
+                      {analysis.overview.ex_dividend_date || 'N/A'}
+                    </p>
+                  </div>
                 </div>
 
                 {/* Company Description */}
@@ -281,6 +397,109 @@ export default function ScreenerPage() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Key Ratios Section */}
+            <div className="grid gap-4 md:grid-cols-2">
+              {/* Liquidity Ratios */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Scale className="h-4 w-4" />
+                    Liquidity Ratios
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">Current Ratio</p>
+                      <p className={`text-xl font-semibold ${getRatioColor(analysis.balance_sheets[0]?.current_ratio, 2.0, 1.0)}`}>
+                        {analysis.balance_sheets[0]?.current_ratio?.toFixed(2) || 'N/A'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Target: &gt;1.5</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">Quick Ratio</p>
+                      <p className={`text-xl font-semibold ${getRatioColor(analysis.balance_sheets[0]?.quick_ratio, 1.5, 1.0)}`}>
+                        {analysis.balance_sheets[0]?.quick_ratio?.toFixed(2) || 'N/A'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Target: &gt;1.0</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">Debt/Equity</p>
+                      <p className={`text-xl font-semibold ${
+                        analysis.balance_sheets[0]?.debt_to_equity !== undefined
+                          ? analysis.balance_sheets[0].debt_to_equity < 0.5
+                            ? 'text-green-400'
+                            : analysis.balance_sheets[0].debt_to_equity < 1.5
+                            ? 'text-yellow-400'
+                            : 'text-red-400'
+                          : 'text-muted-foreground'
+                      }`}>
+                        {analysis.balance_sheets[0]?.debt_to_equity?.toFixed(2) || 'N/A'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Target: &lt;1.0</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Dividend Health */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Wallet className="h-4 w-4" />
+                    Dividend Health
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">FCF Coverage</p>
+                      <p className={`text-xl font-semibold ${getRatioColor(analysis.dividend_metrics?.fcf_coverage_ratio, 2.0, 1.2)}`}>
+                        {analysis.dividend_metrics?.fcf_coverage_ratio?.toFixed(2) || 'N/A'}x
+                      </p>
+                      <p className="text-xs text-muted-foreground">Target: &gt;1.5x</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">Div Growth</p>
+                      <p className={`text-xl font-semibold ${
+                        analysis.dividend_metrics?.dividend_growth_rate != null
+                          ? analysis.dividend_metrics.dividend_growth_rate > 5
+                            ? 'text-green-400'
+                            : analysis.dividend_metrics.dividend_growth_rate > 0
+                            ? 'text-yellow-400'
+                            : 'text-red-400'
+                          : 'text-muted-foreground'
+                      }`}>
+                        {analysis.dividend_metrics?.dividend_growth_rate != null
+                          ? `${analysis.dividend_metrics.dividend_growth_rate > 0 ? '+' : ''}${analysis.dividend_metrics.dividend_growth_rate.toFixed(1)}%`
+                          : 'N/A'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Avg annual</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">Consistency</p>
+                      <p className={`text-xl font-semibold ${
+                        analysis.dividend_metrics?.dividend_consistency === 'Excellent'
+                          ? 'text-green-400'
+                          : analysis.dividend_metrics?.dividend_consistency === 'Good'
+                          ? 'text-blue-400'
+                          : analysis.dividend_metrics?.dividend_consistency === 'Fair'
+                          ? 'text-yellow-400'
+                          : 'text-muted-foreground'
+                      }`}>
+                        {analysis.dividend_metrics?.dividend_consistency || 'N/A'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {analysis.dividend_metrics?.consecutive_growth_years !== undefined
+                          ? `${analysis.dividend_metrics.consecutive_growth_years} yr streak`
+                          : ''}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
             {/* Analysis Tabs */}
             <Tabs defaultValue="income" className="space-y-4">
@@ -603,20 +822,29 @@ export default function ScreenerPage() {
               </TabsContent>
             </Tabs>
 
-            {/* Risk Assessment */}
+            {/* Enhanced Risk Assessment */}
             {analysis.risk_score !== undefined && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5" />
-                    Risk Assessment
-                  </CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <Shield className="h-5 w-5" />
+                      Risk Assessment
+                    </CardTitle>
+                    {/* Risk Grade Badge */}
+                    {analysis.risk_grade && (
+                      <div className={`text-3xl font-bold px-4 py-2 rounded-lg ${getGradeColor(analysis.risk_grade)}`}>
+                        {analysis.risk_grade}
+                      </div>
+                    )}
+                  </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-6">
+                  {/* Overall Score Bar */}
                   <div className="flex items-center gap-4">
                     <div className="flex-1">
                       <div className="flex justify-between mb-2">
-                        <span className="text-sm">Risk Score</span>
+                        <span className="text-sm font-medium">Overall Risk Score</span>
                         <span className={`font-semibold ${getRiskColor(analysis.risk_level)}`}>
                           {analysis.risk_score.toFixed(0)}/100
                         </span>
@@ -636,12 +864,123 @@ export default function ScreenerPage() {
                     </div>
                     <Badge
                       variant={getRiskBadgeVariant(analysis.risk_level)}
-                      className="text-lg px-4 py-1"
+                      className="text-sm px-3 py-1"
                     >
-                      {analysis.risk_level}
+                      {analysis.risk_level} Risk
                     </Badge>
                   </div>
 
+                  {/* Risk Factor Breakdown */}
+                  {analysis.risk_factors && (
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium text-muted-foreground">Risk Factor Breakdown</p>
+                      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                        {/* Yield Risk */}
+                        <div className="p-3 bg-muted/50 rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <Percent className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm">Yield Risk</span>
+                            </div>
+                            <span className="text-sm font-medium">{analysis.risk_factors.yield_risk?.toFixed(0) || 'N/A'}</span>
+                          </div>
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${getRiskFactorColor(analysis.risk_factors.yield_risk)}`}
+                              style={{ width: `${analysis.risk_factors.yield_risk || 0}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Payout Risk */}
+                        <div className="p-3 bg-muted/50 rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <DollarSign className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm">Payout Risk</span>
+                            </div>
+                            <span className="text-sm font-medium">{analysis.risk_factors.payout_risk?.toFixed(0) || 'N/A'}</span>
+                          </div>
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${getRiskFactorColor(analysis.risk_factors.payout_risk)}`}
+                              style={{ width: `${analysis.risk_factors.payout_risk || 0}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Valuation Risk */}
+                        <div className="p-3 bg-muted/50 rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm">Valuation Risk</span>
+                            </div>
+                            <span className="text-sm font-medium">{analysis.risk_factors.valuation_risk?.toFixed(0) || 'N/A'}</span>
+                          </div>
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${getRiskFactorColor(analysis.risk_factors.valuation_risk)}`}
+                              style={{ width: `${analysis.risk_factors.valuation_risk || 0}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Leverage Risk */}
+                        <div className="p-3 bg-muted/50 rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <Scale className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm">Leverage Risk</span>
+                            </div>
+                            <span className="text-sm font-medium">{analysis.risk_factors.leverage_risk?.toFixed(0) || 'N/A'}</span>
+                          </div>
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${getRiskFactorColor(analysis.risk_factors.leverage_risk)}`}
+                              style={{ width: `${analysis.risk_factors.leverage_risk || 0}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Volatility Risk */}
+                        <div className="p-3 bg-muted/50 rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <Activity className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm">Volatility Risk</span>
+                            </div>
+                            <span className="text-sm font-medium">{analysis.risk_factors.volatility_risk?.toFixed(0) || 'N/A'}</span>
+                          </div>
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${getRiskFactorColor(analysis.risk_factors.volatility_risk)}`}
+                              style={{ width: `${analysis.risk_factors.volatility_risk || 0}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Coverage Risk */}
+                        <div className="p-3 bg-muted/50 rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <Zap className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm">Coverage Risk</span>
+                            </div>
+                            <span className="text-sm font-medium">{analysis.risk_factors.coverage_risk?.toFixed(0) || 'N/A'}</span>
+                          </div>
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${getRiskFactorColor(analysis.risk_factors.coverage_risk)}`}
+                              style={{ width: `${analysis.risk_factors.coverage_risk || 0}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Investment Summary */}
                   {analysis.investment_summary && (
                     <div className="p-4 bg-muted rounded-lg">
                       <div className="flex items-start gap-2">

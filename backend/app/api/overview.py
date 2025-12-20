@@ -382,6 +382,9 @@ async def get_distribution_analysis(data: tuple = Depends(get_data)):
     - top_stocks_horizontal: Top 10 for horizontal bar chart
     - recent_trend: Last 12 months of dividend data
     - summary_stats: Additional statistics
+    - projected_annual: Projected annual income based on current pace
+    - concentration_risk: Portfolio concentration warning info
+    - dividend_streak: Streak information
     """
     df, monthly_data = data
     from app.config import MONTH_NAMES
@@ -468,12 +471,102 @@ async def get_distribution_analysis(data: tuple = Depends(get_data)):
         "yoy_growth": yoy_growth
     }
 
+    # Projected annual income based on current year's pace
+    current_year = datetime.now().year
+    current_month = datetime.now().month
+    ytd_total = float(df[df["Year"] == current_year]["Total"].sum())
+
+    # Project based on YTD average (annualized)
+    if current_month > 0:
+        projected_annual = (ytd_total / current_month) * 12
+    else:
+        projected_annual = monthly_avg * 12
+
+    # Calculate projected vs last year
+    last_year_total = float(df[df["Year"] == current_year - 1]["Total"].sum()) if current_year > 1 else 0
+    projected_vs_last_year = ((projected_annual - last_year_total) / last_year_total * 100) if last_year_total > 0 else None
+
+    projected_income = {
+        "ytd_total": ytd_total,
+        "projected_annual": projected_annual,
+        "last_year_total": last_year_total,
+        "projected_vs_last_year": projected_vs_last_year,
+        "months_elapsed": current_month
+    }
+
+    # Portfolio concentration risk analysis
+    total_portfolio = float(stock_totals["Total"].sum())
+    top_3_total = float(stock_totals.head(3)["Total"].sum()) if len(stock_totals) >= 3 else total_portfolio
+    top_3_percentage = (top_3_total / total_portfolio * 100) if total_portfolio > 0 else 0
+
+    # Herfindahl-Hirschman Index for concentration
+    stock_shares = stock_totals["Total"] / total_portfolio * 100
+    hhi = float((stock_shares ** 2).sum())
+
+    # Determine concentration level
+    if top_3_percentage > 60:
+        concentration_level = "High"
+        concentration_warning = f"Top 3 stocks represent {top_3_percentage:.1f}% of dividends. Consider diversifying."
+    elif top_3_percentage > 40:
+        concentration_level = "Medium"
+        concentration_warning = f"Top 3 stocks represent {top_3_percentage:.1f}% of dividends."
+    else:
+        concentration_level = "Low"
+        concentration_warning = None
+
+    concentration_risk = {
+        "top_3_percentage": top_3_percentage,
+        "top_3_stocks": [row["Ticker"] for _, row in stock_totals.head(3).iterrows()],
+        "hhi_index": hhi,
+        "concentration_level": concentration_level,
+        "warning": concentration_warning,
+        "unique_stocks": len(stock_totals)
+    }
+
+    # Dividend streak info (simplified calculation inline)
+    df_copy = df.copy()
+    df_copy["YearMonth"] = df_copy["Time"].dt.to_period("M")
+    months_with_divs = sorted(df_copy["YearMonth"].unique())
+
+    current_streak = 0
+    longest_streak = 1
+    temp_streak = 1
+
+    for i in range(1, len(months_with_divs)):
+        if (months_with_divs[i] - months_with_divs[i-1]).n == 1:
+            temp_streak += 1
+        else:
+            longest_streak = max(longest_streak, temp_streak)
+            temp_streak = 1
+    longest_streak = max(longest_streak, temp_streak)
+
+    # Current streak
+    if len(months_with_divs) > 0:
+        current_period = pd.Period(datetime.now(), freq="M")
+        if months_with_divs[-1] == current_period or months_with_divs[-1] == current_period - 1:
+            current_streak = 1
+            for i in range(len(months_with_divs) - 2, -1, -1):
+                if (months_with_divs[i+1] - months_with_divs[i]).n == 1:
+                    current_streak += 1
+                else:
+                    break
+
+    dividend_streak = {
+        "current_streak": current_streak,
+        "longest_streak": longest_streak,
+        "months_with_dividends": len(months_with_divs),
+        "consistency_rate": (len(months_with_divs) / ((months_with_divs[-1] - months_with_divs[0]).n + 1) * 100) if len(months_with_divs) > 1 else 100
+    }
+
     return {
         "portfolio_allocation": allocation,
         "monthly_totals": monthly_totals,
         "top_stocks_horizontal": top_stocks_h,
         "recent_trend": recent_trend,
-        "summary_stats": summary_stats
+        "summary_stats": summary_stats,
+        "projected_income": projected_income,
+        "concentration_risk": concentration_risk,
+        "dividend_streak": dividend_streak
     }
 
 

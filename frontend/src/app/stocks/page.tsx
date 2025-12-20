@@ -192,6 +192,7 @@ export default function StocksPage() {
                   <Skeleton className="h-[600px]" />
                 ) : stackedBarData.series.length > 0 ? (
                   <PlotlyStackedBarChart
+                    key={`stacked-bar-${periodType}`}
                     data={stackedBarData}
                     title=""
                     xAxisTitle="Time Period"
@@ -248,6 +249,7 @@ export default function StocksPage() {
                     <Skeleton className="h-[400px]" />
                   ) : growthChartData.labels.length > 0 ? (
                     <PlotlyBarChart
+                      key={`growth-chart-${periodType}`}
                       labels={growthChartData.labels}
                       values={growthChartData.values}
                       height={400}

@@ -1,16 +1,15 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Layout } from '@/components/layout/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Slider } from '@/components/ui/slider';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { TrendingUp, Target, Calendar, DollarSign, Info, Percent } from 'lucide-react';
+import { TrendingUp, Calendar, Info } from 'lucide-react';
 import { PlotlyForecastChart, PlotlyProjectionBarChart } from '@/components/charts/PlotlyForecast';
 import { formatCurrency } from '@/lib/constants';
 import api from '@/lib/api';
@@ -49,37 +48,16 @@ interface ForecastResponse {
   current_month_tracking?: CurrentMonthTracking;
 }
 
-interface FICalculatorResponse {
-  monthly_goal: number;
-  current_monthly_avg: number;
-  annual_growth_rate: number;
-  years_to_goal: number | null;
-  goal_reached: boolean;
-}
-
 export default function ForecastPage() {
   const [months, setMonths] = useState(12);
   const [lookback, setLookback] = useState(0); // 0 = use all data
   const [chartHistory, setChartHistory] = useState(0); // 0 = show all history
-  const [monthlyExpenses, setMonthlyExpenses] = useState(2000);
-  const [swr, setSwr] = useState(4.0); // Safe withdrawal rate
   const [selectedModel, setSelectedModel] = useState('ensemble');
 
   const { data: forecastData, isLoading } = useQuery<ForecastResponse>({
     queryKey: ['forecast', months, lookback],
     queryFn: () => api.get(`/api/forecast/?months=${months}&lookback=${lookback}`).then(res => res.data),
   });
-
-  const { data: fiData } = useQuery<FICalculatorResponse>({
-    queryKey: ['fi-calculator', monthlyExpenses],
-    queryFn: () => api.get(`/api/forecast/fi-calculator?monthly_goal=${monthlyExpenses}`).then(res => res.data),
-    enabled: monthlyExpenses > 0,
-  });
-
-  // Calculate FI metrics
-  const fiTarget = useMemo(() => (monthlyExpenses * 12) / (swr / 100), [monthlyExpenses, swr]);
-  const monthlyGap = useMemo(() => Math.max(0, monthlyExpenses - (fiData?.current_monthly_avg || 0)), [monthlyExpenses, fiData]);
-  const coveragePercent = useMemo(() => fiData?.current_monthly_avg ? (fiData.current_monthly_avg / monthlyExpenses) * 100 : 0, [fiData, monthlyExpenses]);
 
   const getModelData = useCallback((): ForecastResult | null => {
     if (!forecastData) return null;
@@ -330,144 +308,6 @@ export default function ForecastPage() {
             )}
           </TabsContent>
         </Tabs>
-
-        {/* FI Calculator */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5" />
-              Financial Independence Calculator
-            </CardTitle>
-            <CardDescription>
-              Plan your path to financial independence through dividend income
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Input Controls */}
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="expenses">Monthly Expenses</Label>
-                <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="expenses"
-                    type="number"
-                    value={monthlyExpenses}
-                    onChange={(e) => setMonthlyExpenses(Number(e.target.value))}
-                    className="w-40"
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Annual: {formatCurrency(monthlyExpenses * 12)}
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Percent className="h-4 w-4" />
-                  Safe Withdrawal Rate: {swr.toFixed(1)}%
-                </Label>
-                <Slider
-                  value={[swr]}
-                  onValueChange={(v) => setSwr(v[0])}
-                  min={2}
-                  max={6}
-                  step={0.1}
-                  className="w-full"
-                />
-                <p className="text-xs text-muted-foreground">
-                  FI Target Portfolio: {formatCurrency(fiTarget)}
-                </p>
-              </div>
-            </div>
-
-            {/* Gap Analysis Cards */}
-            <div className="grid gap-4 md:grid-cols-5">
-              <Card className="bg-gradient-to-br from-card to-muted/30">
-                <CardHeader className="pb-2">
-                  <CardDescription>Current Monthly Avg</CardDescription>
-                  <CardTitle className="text-xl text-primary">
-                    {formatCurrency(fiData?.current_monthly_avg || 0)}
-                  </CardTitle>
-                </CardHeader>
-              </Card>
-              <Card className="bg-gradient-to-br from-card to-muted/30">
-                <CardHeader className="pb-2">
-                  <CardDescription>Monthly Target</CardDescription>
-                  <CardTitle className="text-xl">
-                    {formatCurrency(monthlyExpenses)}
-                  </CardTitle>
-                </CardHeader>
-              </Card>
-              <Card className={`bg-gradient-to-br ${monthlyGap > 0 ? 'from-red-500/10 to-card' : 'from-green-500/10 to-card'}`}>
-                <CardHeader className="pb-2">
-                  <CardDescription>Monthly Gap</CardDescription>
-                  <CardTitle className={`text-xl ${monthlyGap > 0 ? 'text-red-400' : 'text-green-400'}`}>
-                    {monthlyGap > 0 ? `-${formatCurrency(monthlyGap)}` : 'Covered!'}
-                  </CardTitle>
-                </CardHeader>
-              </Card>
-              <Card className="bg-gradient-to-br from-card to-muted/30">
-                <CardHeader className="pb-2">
-                  <CardDescription>Coverage</CardDescription>
-                  <CardTitle className="text-xl">
-                    {coveragePercent.toFixed(1)}%
-                  </CardTitle>
-                </CardHeader>
-              </Card>
-              <Card className={`bg-gradient-to-br ${fiData?.goal_reached ? 'from-green-500/20 to-card border-green-500' : 'from-card to-muted/30'}`}>
-                <CardHeader className="pb-2">
-                  <CardDescription>Years to Goal</CardDescription>
-                  <CardTitle className="text-xl">
-                    {fiData?.goal_reached ? (
-                      <span className="text-green-400">Reached!</span>
-                    ) : fiData?.years_to_goal ? (
-                      `${fiData.years_to_goal.toFixed(1)} yrs`
-                    ) : (
-                      'N/A'
-                    )}
-                  </CardTitle>
-                </CardHeader>
-              </Card>
-            </div>
-
-            {/* Growth Rate Info */}
-            {fiData && (
-              <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
-                <TrendingUp className="h-5 w-5 text-primary" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Historical Growth Rate</p>
-                  <p className="text-xs text-muted-foreground">
-                    Based on your dividend history
-                  </p>
-                </div>
-                <Badge variant={fiData.annual_growth_rate > 0 ? "default" : "secondary"} className="text-lg px-3 py-1">
-                  {fiData.annual_growth_rate > 0 ? '+' : ''}{fiData.annual_growth_rate.toFixed(1)}%
-                </Badge>
-              </div>
-            )}
-
-            {/* Progress Bar */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Progress to FI</span>
-                <span className="font-medium">{coveragePercent.toFixed(1)}%</span>
-              </div>
-              <div className="h-4 bg-secondary rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-primary to-green-500 transition-all duration-500"
-                  style={{
-                    width: `${Math.min(100, coveragePercent)}%`
-                  }}
-                />
-              </div>
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{formatCurrency(0)}</span>
-                <span>{formatCurrency(monthlyExpenses)}/mo</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </Layout>
   );

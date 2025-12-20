@@ -379,15 +379,21 @@ async def get_stock_details(ticker: str, data: tuple = Depends(get_data)):
         for _, row in yearly.iterrows()
     ]
 
-    # Payment history
-    history = company_data.sort_values("Time", ascending=False)
+    # Payment history - group by date (some stocks have multiple payments on the same day)
+    company_data["Date"] = company_data["Time"].dt.date
+    daily_payments = company_data.groupby("Date").agg({
+        "Total": "sum",
+        "No. of shares": "sum"
+    }).reset_index()
+    daily_payments = daily_payments.sort_values("Date", ascending=False)
+
     payment_history = [
         PaymentHistory(
-            date=to_python_type(row["Time"]),
+            date=to_python_type(row["Date"]),
             amount=to_python_type(row["Total"]),
             shares=to_python_type(row["No. of shares"])
         )
-        for _, row in history.iterrows()
+        for _, row in daily_payments.iterrows()
     ]
 
     # Monthly growth

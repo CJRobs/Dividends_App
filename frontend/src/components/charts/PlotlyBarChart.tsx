@@ -112,7 +112,7 @@ export function PlotlyBarChart({
   };
 
   return (
-    <div className={className}>
+    <div className={className} style={{ width: '100%', height }}>
       <Plot
         data={[trace]}
         layout={layout}
@@ -203,7 +203,7 @@ export function PlotlyMultiBarChart({
   };
 
   return (
-    <div className={className}>
+    <div className={className} style={{ width: '100%', height }}>
       <Plot
         data={traces}
         layout={layout}
