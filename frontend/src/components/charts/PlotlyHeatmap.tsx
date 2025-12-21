@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useMemo } from 'react';
 import { getChartTheme, getBaseLayout } from '@/lib/chartTheme';
+import { useIsDark } from '@/hooks/useTheme';
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
@@ -35,7 +36,8 @@ export function PlotlyHeatmap({
   currency = '£',
   className,
 }: PlotlyHeatmapProps) {
-  const theme = getChartTheme(true);
+  const isDark = useIsDark();
+  const theme = getChartTheme(isDark);
 
   // Build the z-matrix (rows x cols)
   const { zValues, textValues } = useMemo(() => {

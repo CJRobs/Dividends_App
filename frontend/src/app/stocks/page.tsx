@@ -33,7 +33,11 @@ import {
   AlertTriangle,
   Calendar,
   DollarSign,
+  PieChart,
+  BarChart3,
+  Zap,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 type PeriodType = 'Monthly' | 'Quarterly' | 'Yearly';
 
@@ -145,9 +149,13 @@ export default function StocksPage() {
     <Layout>
       <div className="space-y-6">
         {/* Page Header */}
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Stock Analysis</h1>
-          <p className="text-muted-foreground">
+        <div className="animate-enter">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+            <span>Analysis</span>
+          </div>
+          <h1 className="text-4xl lg:text-5xl font-serif tracking-tight mb-2">Stock Analysis</h1>
+          <p className="text-lg text-muted-foreground max-w-2xl">
             Analyze dividend performance by stock and time period
           </p>
         </div>
@@ -273,38 +281,46 @@ export default function StocksPage() {
             {/* Summary Stats */}
             <div className="grid gap-4 md:grid-cols-4">
               {overviewLoading ? (
-                [...Array(4)].map((_, i) => <Skeleton key={i} className="h-24" />)
+                [...Array(4)].map((_, i) => <Skeleton key={i} className="h-28" />)
               ) : (
                 <>
-                  <Card>
-                    <CardContent className="pt-6">
+                  <Card className="border-l-4 border-l-blue-500 bg-blue-500/5 hover:scale-[1.02] transition-transform">
+                    <CardContent className="pt-5 pb-5">
                       <div className="flex items-center gap-2">
-                        <Building2 className="h-4 w-4 text-muted-foreground" />
+                        <Building2 className="h-4 w-4 text-blue-400" />
                         <span className="text-sm text-muted-foreground">Total Stocks</span>
                       </div>
-                      <div className="text-2xl font-bold mt-2">{overview?.total_stocks || 0}</div>
+                      <div className="text-3xl font-bold mt-2 number-display">{overview?.total_stocks || 0}</div>
                     </CardContent>
                   </Card>
 
-                  <Card>
-                    <CardContent className="pt-6">
+                  <Card className="border-l-4 border-l-green-500 bg-green-500/5 hover:scale-[1.02] transition-transform">
+                    <CardContent className="pt-5 pb-5">
                       <div className="flex items-center gap-2">
-                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        <DollarSign className="h-4 w-4 text-green-400" />
                         <span className="text-sm text-muted-foreground">Total Dividends</span>
                       </div>
-                      <div className="text-2xl font-bold mt-2">
+                      <div className="text-3xl font-bold mt-2 number-display value-positive">
                         {formatCurrency(overview?.total_dividends || 0, currency)}
                       </div>
                     </CardContent>
                   </Card>
 
-                  <Card>
-                    <CardContent className="pt-6">
+                  <Card className={cn(
+                    "border-l-4 hover:scale-[1.02] transition-transform",
+                    (growthData?.average_growth || 0) >= 0
+                      ? "border-l-emerald-500 bg-emerald-500/5"
+                      : "border-l-red-500 bg-red-500/5"
+                  )}>
+                    <CardContent className="pt-5 pb-5">
                       <div className="flex items-center gap-2">
-                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                        <TrendingUp className="h-4 w-4 text-emerald-400" />
                         <span className="text-sm text-muted-foreground">Avg Growth</span>
                       </div>
-                      <div className="text-2xl font-bold mt-2">
+                      <div className={cn(
+                        "text-3xl font-bold mt-2 number-display",
+                        (growthData?.average_growth || 0) >= 0 ? "value-positive" : "value-negative"
+                      )}>
                         {growthData?.average_growth !== null
                           ? `${growthData?.average_growth?.toFixed(1)}%`
                           : 'N/A'}
@@ -312,13 +328,20 @@ export default function StocksPage() {
                     </CardContent>
                   </Card>
 
-                  <Card>
-                    <CardContent className="pt-6">
+                  <Card className={cn(
+                    "border-l-4 hover:scale-[1.02] transition-transform",
+                    (overview?.concentration.top_5_percent || 0) > 70
+                      ? "border-l-red-500 bg-red-500/5"
+                      : (overview?.concentration.top_5_percent || 0) > 50
+                      ? "border-l-yellow-500 bg-yellow-500/5"
+                      : "border-l-green-500 bg-green-500/5"
+                  )}>
+                    <CardContent className="pt-5 pb-5">
                       <div className="flex items-center gap-2">
-                        <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                        <AlertTriangle className="h-4 w-4 text-yellow-400" />
                         <span className="text-sm text-muted-foreground">Top 5 Concentration</span>
                       </div>
-                      <div className="text-2xl font-bold mt-2">
+                      <div className="text-3xl font-bold mt-2 number-display">
                         {formatPercentage(overview?.concentration.top_5_percent || 0, 1)}
                       </div>
                     </CardContent>
@@ -576,32 +599,39 @@ export default function StocksPage() {
                 {/* Payment History Table */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Payment History</CardTitle>
-                    <CardDescription>All dividend payments received</CardDescription>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <Calendar className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">Payment History</CardTitle>
+                        <CardDescription>All dividend payments received</CardDescription>
+                      </div>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     {stockDetailLoading ? (
                       <Skeleton className="h-64" />
                     ) : stockDetail?.payment_history ? (
-                      <div className="max-h-[400px] overflow-auto">
-                        <table className="w-full">
-                          <thead className="sticky top-0 bg-background">
-                            <tr className="border-b">
-                              <th className="text-left py-2 px-4 font-medium">Date</th>
-                              <th className="text-right py-2 px-4 font-medium">Amount</th>
-                              <th className="text-right py-2 px-4 font-medium">Shares</th>
+                      <div className="max-h-[400px] overflow-auto rounded-lg border border-border/50">
+                        <table className="table-enhanced w-full">
+                          <thead>
+                            <tr>
+                              <th className="text-left">Date</th>
+                              <th className="text-right">Amount</th>
+                              <th className="text-right">Shares</th>
                             </tr>
                           </thead>
                           <tbody>
                             {stockDetail.payment_history.map((payment, idx) => (
-                              <tr key={idx} className="border-b last:border-0">
-                                <td className="py-2 px-4">
+                              <tr key={idx}>
+                                <td className="font-medium">
                                   {new Date(payment.date).toLocaleDateString()}
                                 </td>
-                                <td className="py-2 px-4 text-right font-medium">
+                                <td className="text-right number-display value-positive">
                                   {formatCurrency(payment.amount, currency)}
                                 </td>
-                                <td className="py-2 px-4 text-right text-muted-foreground">
+                                <td className="text-right number-display text-muted-foreground">
                                   {payment.shares.toFixed(2)}
                                 </td>
                               </tr>

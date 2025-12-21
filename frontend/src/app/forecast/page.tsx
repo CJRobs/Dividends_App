@@ -9,10 +9,11 @@ import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { TrendingUp, Calendar, Info } from 'lucide-react';
+import { TrendingUp, Calendar, Info, Sparkles, Calculator, Gauge, Settings2, ChartLine } from 'lucide-react';
 import { PlotlyForecastChart, PlotlyProjectionBarChart } from '@/components/charts/PlotlyForecast';
 import { formatCurrency } from '@/lib/constants';
 import api from '@/lib/api';
+import { cn } from '@/lib/utils';
 
 interface ForecastPoint {
   date: string;
@@ -112,18 +113,29 @@ export default function ForecastPage() {
     <Layout>
       <div className="space-y-6">
         {/* Page Header */}
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dividend Forecast</h1>
-          <p className="text-muted-foreground">
+        <div className="animate-enter">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+            <span>Predictions</span>
+          </div>
+          <h1 className="text-4xl lg:text-5xl font-serif tracking-tight mb-2">
+            Dividend Forecast
+          </h1>
+          <p className="text-lg text-muted-foreground max-w-2xl">
             Predict future dividend income using multiple forecasting models
           </p>
         </div>
 
         {/* Settings */}
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card>
+        <div className="grid gap-4 md:grid-cols-2 animate-enter" style={{ animationDelay: '75ms' }}>
+          <Card className="overflow-hidden">
             <CardHeader>
-              <CardTitle className="text-base">Forecast Settings</CardTitle>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Settings2 className="h-5 w-5 text-primary" />
+                </div>
+                <CardTitle className="text-lg">Forecast Settings</CardTitle>
+              </div>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
@@ -232,51 +244,66 @@ export default function ForecastPage() {
               <>
                 {/* Summary Cards */}
                 <div className="grid gap-4 md:grid-cols-3">
-                  <Card>
+                  <Card className="border-l-4 border-l-purple-500 bg-purple-500/5 hover:scale-[1.02] transition-transform">
                     <CardHeader className="pb-2">
-                      <CardDescription>Total Projected ({months}mo)</CardDescription>
-                      <CardTitle className="text-2xl">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Sparkles className="h-4 w-4 text-purple-400" />
+                        <CardDescription>Total Projected ({months}mo)</CardDescription>
+                      </div>
+                      <CardTitle className="text-3xl number-display value-positive">
                         {formatCurrency(modelData.total_projected)}
                       </CardTitle>
                     </CardHeader>
                   </Card>
-                  <Card>
+                  <Card className="border-l-4 border-l-blue-500 bg-blue-500/5 hover:scale-[1.02] transition-transform">
                     <CardHeader className="pb-2">
-                      <CardDescription>Monthly Average</CardDescription>
-                      <CardTitle className="text-2xl">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Calculator className="h-4 w-4 text-blue-400" />
+                        <CardDescription>Monthly Average</CardDescription>
+                      </div>
+                      <CardTitle className="text-3xl number-display">
                         {formatCurrency(modelData.monthly_average)}
                       </CardTitle>
                     </CardHeader>
                   </Card>
-                  <Card>
+                  <Card className="border-l-4 border-l-emerald-500 bg-emerald-500/5 hover:scale-[1.02] transition-transform">
                     <CardHeader className="pb-2">
-                      <CardDescription>Model</CardDescription>
+                      <div className="flex items-center gap-2 mb-1">
+                        <Gauge className="h-4 w-4 text-emerald-400" />
+                        <CardDescription>Active Model</CardDescription>
+                      </div>
                       <CardTitle className="text-2xl flex items-center gap-2">
                         {modelData.model_name}
-                        <Badge variant="secondary">Active</Badge>
+                        <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Active</Badge>
                       </CardTitle>
                     </CardHeader>
                   </Card>
                 </div>
 
                 {/* Forecast Chart */}
-                <Card>
+                <Card className="overflow-hidden">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5" />
-                      {modelData.model_name} Forecast
-                    </CardTitle>
-                    <CardDescription>
-                      Historical data with {months}-month forecast
-                      {modelData.forecast[0]?.lower_bound !== null && ' and 95% confidence interval'}
-                    </CardDescription>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                        <ChartLine className="h-5 w-5 text-purple-400" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">{modelData.model_name} Forecast</CardTitle>
+                        <CardDescription>
+                          Historical data with {months}-month forecast
+                          {modelData.forecast[0]?.lower_bound !== null && ' and 95% confidence interval'}
+                        </CardDescription>
+                      </div>
+                    </div>
                   </CardHeader>
                   <CardContent>
-                    <PlotlyForecastChart
-                      data={trimmedChartData}
-                      height={400}
-                      currency="£"
-                    />
+                    <div className="chart-reveal">
+                      <PlotlyForecastChart
+                        data={trimmedChartData}
+                        height={400}
+                        currency="£"
+                      />
+                    </div>
                   </CardContent>
                 </Card>
 

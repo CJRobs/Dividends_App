@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useMemo } from 'react';
 import { getChartTheme, getBaseLayout, QUALITATIVE_COLORS } from '@/lib/chartTheme';
+import { useIsDark } from '@/hooks/useTheme';
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
@@ -45,7 +46,8 @@ export function PlotlyLineChart({
   yAxisFormat,
   className,
 }: PlotlyLineChartProps) {
-  const theme = getChartTheme(true);
+  const isDark = useIsDark();
+  const theme = getChartTheme(isDark);
 
   const traces = useMemo(() => {
     const dataArray = Array.isArray(data) ? data : [data];
@@ -133,7 +135,8 @@ export function PlotlyScatterWithMA({
   maWindow = 3,
   className,
 }: ScatterWithMAProps) {
-  const theme = getChartTheme(true);
+  const isDark = useIsDark();
+  const theme = getChartTheme(isDark);
 
   // Calculate moving average
   const ma = useMemo(() => {

@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useMemo } from 'react';
 import { getChartTheme, getBaseLayout, QUALITATIVE_COLORS, getGrowthColors } from '@/lib/chartTheme';
+import { useIsDark } from '@/hooks/useTheme';
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
@@ -66,7 +67,8 @@ export function PlotlyBarChart({
   valueSuffix = '',
   className,
 }: SimpleBarChartProps) {
-  const theme = getChartTheme(true);
+  const isDark = useIsDark();
+  const theme = getChartTheme(isDark);
   const isVertical = orientation === 'vertical';
   const colors = conditionalColors ? getGrowthColors(values) : (color || QUALITATIVE_COLORS[0]);
 
@@ -140,7 +142,8 @@ export function PlotlyMultiBarChart({
   hoverTemplate,
   className,
 }: ComplexBarChartProps) {
-  const theme = getChartTheme(true);
+  const isDark = useIsDark();
+  const theme = getChartTheme(isDark);
 
   const traces = useMemo(() => {
     const dataArray = Array.isArray(data) ? data : [data];

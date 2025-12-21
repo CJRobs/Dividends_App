@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useMemo } from 'react';
 import { getChartTheme, getBaseLayout, CHART_COLORS } from '@/lib/chartTheme';
+import { useIsDark } from '@/hooks/useTheme';
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
@@ -30,7 +31,8 @@ export function PlotlyForecastChart({
   title,
   className,
 }: PlotlyForecastChartProps) {
-  const theme = getChartTheme(true);
+  const isDark = useIsDark();
+  const theme = getChartTheme(isDark);
 
   const traces = useMemo(() => {
     const actualData = data.filter(d => d.actual !== undefined);
@@ -221,7 +223,8 @@ export function PlotlyProjectionBarChart({
   title,
   className,
 }: PlotlyProjectionBarChartProps) {
-  const theme = getChartTheme(true);
+  const isDark = useIsDark();
+  const theme = getChartTheme(isDark);
 
   const traces = useMemo(() => {
     return [{

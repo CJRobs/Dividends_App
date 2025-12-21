@@ -9,10 +9,37 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 import requests
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import lru_cache
+import hashlib
+import json
 
 from app.config import get_settings
+
+# TTL-based cache for API responses (24 hours for fundamental data)
+_response_cache: Dict[str, tuple[Any, datetime]] = {}
+_CACHE_TTL_MINUTES = 1440  # 24 hours
+
+
+def _get_cache_key(prefix: str, symbol: str) -> str:
+    """Generate a unique cache key."""
+    return f"{prefix}:{symbol.upper()}"
+
+
+def _get_cached(key: str) -> Optional[Any]:
+    """Get cached value if not expired."""
+    if key in _response_cache:
+        value, timestamp = _response_cache[key]
+        if datetime.now() - timestamp < timedelta(minutes=_CACHE_TTL_MINUTES):
+            return value
+        # Expired, remove it
+        del _response_cache[key]
+    return None
+
+
+def _set_cache(key: str, value: Any) -> None:
+    """Store value in cache."""
+    _response_cache[key] = (value, datetime.now())
 
 router = APIRouter()
 
@@ -207,13 +234,19 @@ async def fetch_alpha_vantage(function: str, symbol: str) -> Optional[Dict[str, 
 async def get_company_overview(symbol: str):
     """
     Get company overview data from Alpha Vantage.
+    Uses 24-hour TTL cache to minimize API calls.
     """
+    cache_key = _get_cache_key("overview", symbol)
+    cached = _get_cached(cache_key)
+    if cached is not None:
+        return cached
+
     data = await fetch_alpha_vantage("OVERVIEW", symbol)
 
     if not data or "Symbol" not in data:
         raise HTTPException(status_code=404, detail=f"No data found for symbol: {symbol}")
 
-    return CompanyOverview(
+    result = CompanyOverview(
         symbol=data.get("Symbol", symbol),
         name=data.get("Name", "Unknown"),
         description=data.get("Description"),
@@ -239,6 +272,9 @@ async def get_company_overview(symbol: str):
         payout_ratio=safe_float(data.get("PayoutRatio")),
     )
 
+    _set_cache(cache_key, result)
+    return result
+
 
 @router.get("/dividends/{symbol}", response_model=List[DividendHistory])
 async def get_dividend_history(symbol: str):
@@ -246,7 +282,13 @@ async def get_dividend_history(symbol: str):
     Get dividend history from Alpha Vantage using TIME_SERIES_MONTHLY_ADJUSTED.
     This uses the free tier endpoint instead of premium DIVIDENDS endpoint.
     Extracts dividends from the "7. dividend amount" field in monthly data.
+    Uses 24-hour TTL cache to minimize API calls.
     """
+    cache_key = _get_cache_key("dividends", symbol)
+    cached = _get_cached(cache_key)
+    if cached is not None:
+        return cached
+
     # Use TIME_SERIES_MONTHLY_ADJUSTED (free tier) instead of DIVIDENDS (premium)
     data = await fetch_alpha_vantage("TIME_SERIES_MONTHLY_ADJUSTED", symbol)
 
@@ -269,14 +311,23 @@ async def get_dividend_history(symbol: str):
 
     # Sort by date descending and limit to last 20
     dividends.sort(key=lambda x: x.ex_date, reverse=True)
-    return dividends[:20]
+    result = dividends[:20]
+
+    _set_cache(cache_key, result)
+    return result
 
 
 @router.get("/income/{symbol}", response_model=List[IncomeStatement])
 async def get_income_statement(symbol: str):
     """
     Get income statement data from Alpha Vantage.
+    Uses 24-hour TTL cache to minimize API calls.
     """
+    cache_key = _get_cache_key("income", symbol)
+    cached = _get_cached(cache_key)
+    if cached is not None:
+        return cached
+
     data = await fetch_alpha_vantage("INCOME_STATEMENT", symbol)
 
     if not data or "annualReports" not in data:
@@ -293,6 +344,7 @@ async def get_income_statement(symbol: str):
             ebitda=safe_float(item.get("ebitda")),
         ))
 
+    _set_cache(cache_key, statements)
     return statements
 
 
@@ -300,7 +352,13 @@ async def get_income_statement(symbol: str):
 async def get_balance_sheet(symbol: str):
     """
     Get balance sheet data from Alpha Vantage with liquidity ratios.
+    Uses 24-hour TTL cache to minimize API calls.
     """
+    cache_key = _get_cache_key("balance", symbol)
+    cached = _get_cached(cache_key)
+    if cached is not None:
+        return cached
+
     data = await fetch_alpha_vantage("BALANCE_SHEET", symbol)
 
     if not data or "annualReports" not in data:
@@ -345,6 +403,7 @@ async def get_balance_sheet(symbol: str):
             debt_to_equity=debt_to_equity,
         ))
 
+    _set_cache(cache_key, sheets)
     return sheets
 
 
@@ -352,7 +411,13 @@ async def get_balance_sheet(symbol: str):
 async def get_cash_flow(symbol: str):
     """
     Get cash flow data from Alpha Vantage.
+    Uses 24-hour TTL cache to minimize API calls.
     """
+    cache_key = _get_cache_key("cashflow", symbol)
+    cached = _get_cached(cache_key)
+    if cached is not None:
+        return cached
+
     data = await fetch_alpha_vantage("CASH_FLOW", symbol)
 
     if not data or "annualReports" not in data:
@@ -374,6 +439,7 @@ async def get_cash_flow(symbol: str):
             dividend_payout=safe_float(item.get("dividendPayout")),
         ))
 
+    _set_cache(cache_key, flows)
     return flows
 
 
@@ -685,3 +751,50 @@ async def search_dividends(
             "max_yield": max_yield
         }
     }
+
+
+@router.get("/cache/status")
+async def get_cache_status():
+    """
+    Get current cache status and statistics.
+    """
+    now = datetime.now()
+    entries = []
+    for key, (_, timestamp) in _response_cache.items():
+        age_minutes = (now - timestamp).total_seconds() / 60
+        expires_in = _CACHE_TTL_MINUTES - age_minutes
+        entries.append({
+            "key": key,
+            "age_minutes": round(age_minutes, 1),
+            "expires_in_minutes": round(expires_in, 1),
+            "expired": expires_in <= 0,
+        })
+
+    return {
+        "total_entries": len(_response_cache),
+        "ttl_minutes": _CACHE_TTL_MINUTES,
+        "entries": entries,
+    }
+
+
+@router.delete("/cache/clear")
+async def clear_cache(symbol: Optional[str] = None):
+    """
+    Clear cached responses.
+    If symbol is provided, only clear cache for that symbol.
+    Otherwise, clear all cache.
+    """
+    global _response_cache
+
+    if symbol is None:
+        count = len(_response_cache)
+        _response_cache = {}
+        return {"cleared": count, "message": "All cache entries cleared"}
+
+    # Clear entries for specific symbol
+    symbol_upper = symbol.upper()
+    keys_to_remove = [k for k in _response_cache.keys() if k.endswith(f":{symbol_upper}")]
+    for key in keys_to_remove:
+        del _response_cache[key]
+
+    return {"cleared": len(keys_to_remove), "symbol": symbol_upper}

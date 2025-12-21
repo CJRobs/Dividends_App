@@ -127,10 +127,13 @@ export function Sidebar() {
                       'w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-300',
                       isActive
                         ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-sidebar-primary/30'
-                        : 'bg-sidebar-accent/30 text-sidebar-foreground/60 group-hover:bg-sidebar-accent group-hover:text-sidebar-foreground'
+                        : 'bg-sidebar-accent/30 text-sidebar-foreground/60 group-hover:bg-sidebar-accent group-hover:text-sidebar-foreground group-hover:scale-110'
                     )}
                   >
-                    <Icon className="h-4 w-4" />
+                    <Icon className={cn(
+                      'h-4 w-4 transition-transform duration-300',
+                      'group-hover:scale-110'
+                    )} />
                   </div>
 
                   {/* Label */}
@@ -166,33 +169,6 @@ export function Sidebar() {
               );
             })}
           </nav>
-
-          {/* Portfolio Status */}
-          <div className="px-4 pb-4">
-            <div className="p-4 rounded-xl bg-gradient-to-br from-sidebar-accent/80 to-sidebar-accent/40 border border-sidebar-border/30">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-[10px] font-medium text-sidebar-foreground/60 uppercase tracking-wider">
-                  Portfolio Active
-                </span>
-              </div>
-              <p className="text-xs text-sidebar-foreground/40 leading-relaxed">
-                Tracking your dividend income in real-time
-              </p>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div className="px-6 py-4 border-t border-sidebar-border/30">
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] text-sidebar-foreground/30">
-                Wealth Observatory
-              </p>
-              <p className="text-[10px] text-sidebar-foreground/30 font-mono">
-                v2.0
-              </p>
-            </div>
-          </div>
         </div>
       </aside>
 

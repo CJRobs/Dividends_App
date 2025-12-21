@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useMemo } from 'react';
 import { getChartTheme, getBaseLayout, QUALITATIVE_COLORS } from '@/lib/chartTheme';
+import { useIsDark } from '@/hooks/useTheme';
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
@@ -35,7 +36,8 @@ export function PlotlyStackedBarChart({
   showTextLabels = true,
   className,
 }: PlotlyStackedBarChartProps) {
-  const theme = getChartTheme(true);
+  const isDark = useIsDark();
+  const theme = getChartTheme(isDark);
 
   const traces = useMemo(() => {
     return data.series.map((series, idx) => ({
@@ -130,7 +132,8 @@ export function PlotlyGroupedBarChart({
   height = 500,
   className,
 }: PlotlyGroupedBarChartProps) {
-  const theme = getChartTheme(true);
+  const isDark = useIsDark();
+  const theme = getChartTheme(isDark);
 
   const traces = useMemo(() => {
     return data.series.map((series, idx) => ({

@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useMemo } from 'react';
 import { getChartTheme, getBaseLayout, CHART_COLORS } from '@/lib/chartTheme';
+import { useIsDark } from '@/hooks/useTheme';
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
@@ -47,7 +48,8 @@ export function PlotlyDualAxisChart({
   barmode = 'group',
   className,
 }: PlotlyDualAxisChartProps) {
-  const theme = getChartTheme(true);
+  const isDark = useIsDark();
+  const theme = getChartTheme(isDark);
 
   const traces = useMemo(() => {
     const barTraces = bars.map((bar) => ({
@@ -154,7 +156,8 @@ export function PlotlyCashFlowChart({
   height = 500,
   className,
 }: CashFlowChartProps) {
-  const theme = getChartTheme(true);
+  const isDark = useIsDark();
+  const theme = getChartTheme(isDark);
 
   const traces = [
     {
@@ -238,7 +241,8 @@ export function PlotlyPayoutRatioChart({
   height = 400,
   className,
 }: PayoutRatioChartProps) {
-  const theme = getChartTheme(true);
+  const isDark = useIsDark();
+  const theme = getChartTheme(isDark);
 
   const traces = [
     {

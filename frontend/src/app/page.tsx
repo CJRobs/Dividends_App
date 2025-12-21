@@ -28,6 +28,7 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { useCountUp, formatCountUp } from '@/hooks/useCountUp';
 
 // Plotly Charts
 import { PlotlyBarChart } from '@/components/charts/PlotlyBarChart';
@@ -69,23 +70,50 @@ interface DistributionData {
   };
 }
 
+// Animated number component
+function AnimatedNumber({
+  value,
+  prefix = '',
+  suffix = '',
+  decimals = 0,
+  delay = 0,
+}: {
+  value: number;
+  prefix?: string;
+  suffix?: string;
+  decimals?: number;
+  delay?: number;
+}) {
+  const animatedValue = useCountUp(value, { duration: 1500, delay, decimals });
+  return (
+    <span className="number-display">
+      {formatCountUp(animatedValue, { prefix, decimals })}
+      {suffix}
+    </span>
+  );
+}
+
 // Hero stat component for large display numbers
 function HeroStat({
   value,
+  numericValue,
   label,
   trend,
   trendValue,
   icon: Icon,
   delay = 0,
-  variant = 'default'
+  variant = 'default',
+  prefix = '',
 }: {
   value: string;
+  numericValue?: number;
   label: string;
   trend?: 'up' | 'down' | 'neutral';
   trendValue?: string;
   icon: React.ElementType;
   delay?: number;
   variant?: 'default' | 'primary' | 'accent';
+  prefix?: string;
 }) {
   return (
     <div
@@ -95,20 +123,20 @@ function HeroStat({
       )}
       style={{ animationDelay: `${delay * 75}ms` }}
     >
-      <Card className="card-hover overflow-hidden h-full">
+      <Card className="card-premium overflow-hidden h-full">
         <CardContent className="p-6">
           <div className="flex items-start justify-between mb-4">
             <div className={cn(
-              "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110",
-              variant === 'primary' && "bg-primary/10 text-primary",
-              variant === 'accent' && "bg-amber-500/10 text-amber-500",
+              "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-3",
+              variant === 'primary' && "bg-primary/10 text-primary shadow-lg shadow-primary/10",
+              variant === 'accent' && "bg-amber-500/10 text-amber-500 shadow-lg shadow-amber-500/10",
               variant === 'default' && "bg-muted text-muted-foreground"
             )}>
-              <Icon className="h-6 w-6" />
+              <Icon className="h-6 w-6 transition-transform duration-300 group-hover:scale-110" />
             </div>
             {trend && trendValue && (
               <div className={cn(
-                "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium",
+                "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-300",
                 trend === 'up' && "bg-emerald-500/10 text-emerald-500",
                 trend === 'down' && "bg-red-500/10 text-red-500",
                 trend === 'neutral' && "bg-muted text-muted-foreground"
@@ -122,11 +150,20 @@ function HeroStat({
 
           <div className="space-y-1">
             <p className={cn(
-              "text-3xl lg:text-4xl font-serif tracking-tight",
+              "text-3xl lg:text-4xl font-serif tracking-tight transition-all duration-300",
               variant === 'primary' && "text-gradient",
               variant === 'accent' && "text-gradient-gold"
             )}>
-              {value}
+              {numericValue !== undefined ? (
+                <AnimatedNumber
+                  value={numericValue}
+                  prefix={prefix}
+                  decimals={2}
+                  delay={delay * 75 + 300}
+                />
+              ) : (
+                value
+              )}
             </p>
             <p className="text-sm text-muted-foreground">{label}</p>
           </div>
@@ -255,6 +292,8 @@ export default function OverviewPage() {
             <>
               <HeroStat
                 value={formatCurrency(summary?.total_dividends || 0, currency)}
+                numericValue={summary?.total_dividends || 0}
+                prefix={currency === 'GBP' ? '£' : currency === 'EUR' ? '€' : '$'}
                 label="Total Dividends Earned"
                 icon={Wallet}
                 variant="primary"
@@ -262,6 +301,8 @@ export default function OverviewPage() {
               />
               <HeroStat
                 value={formatCurrency(summary?.total_dividends_ytd || 0, currency)}
+                numericValue={summary?.total_dividends_ytd || 0}
+                prefix={currency === 'GBP' ? '£' : currency === 'EUR' ? '€' : '$'}
                 label="Year to Date"
                 icon={Calendar}
                 trend={ytdGrowth !== undefined && ytdGrowth !== null ? (ytdGrowth >= 0 ? 'up' : 'down') : undefined}
@@ -271,6 +312,8 @@ export default function OverviewPage() {
               />
               <HeroStat
                 value={formatCurrency(summary?.average_dividend || 0, currency)}
+                numericValue={summary?.average_dividend || 0}
+                prefix={currency === 'GBP' ? '£' : currency === 'EUR' ? '€' : '$'}
                 label="Average Payment"
                 icon={Target}
                 delay={3}

@@ -61,16 +61,10 @@ export function Header() {
     <header className="sticky top-0 z-10 h-16 bg-background/80 backdrop-blur-xl border-b border-border/50">
       {/* Subtle gradient line at top */}
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+      {/* Bottom gradient accent */}
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/10 to-transparent" />
 
-      <div className="flex items-center justify-between h-full px-6">
-        {/* Left side - Page context or breadcrumb area */}
-        <div className="flex items-center gap-4">
-          {/* Live market indicator */}
-          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 border border-border/50">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs font-medium text-muted-foreground">Live</span>
-          </div>
-        </div>
+      <div className="flex items-center justify-end h-full px-6">
 
         {/* Right side - Actions */}
         <div className="flex items-center gap-2">
@@ -150,11 +144,11 @@ export function Header() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 hover:bg-muted/50 transition-all duration-200 relative"
+            className="h-9 w-9 hover:bg-muted/50 transition-all duration-200 relative group"
           >
-            <Bell className="h-4 w-4" />
+            <Bell className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
             {/* Notification dot */}
-            <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-amber-500" />
+            <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
             <span className="sr-only">Notifications</span>
           </Button>
 
@@ -162,9 +156,9 @@ export function Header() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 hover:bg-muted/50 transition-all duration-200"
+            className="h-9 w-9 hover:bg-muted/50 transition-all duration-200 group"
           >
-            <Settings className="h-4 w-4" />
+            <Settings className="h-4 w-4 transition-transform duration-300 group-hover:rotate-90" />
             <span className="sr-only">Settings</span>
           </Button>
         </div>

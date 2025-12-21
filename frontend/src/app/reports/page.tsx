@@ -22,9 +22,12 @@ import {
   DollarSign,
   BarChart3,
   Loader2,
+  Sparkles,
+  FileDown,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/constants';
 import api from '@/lib/api';
+import { cn } from '@/lib/utils';
 
 interface PeriodInfo {
   label: string;
@@ -147,23 +150,33 @@ export default function ReportsPage() {
     <Layout>
       <div className="space-y-6">
         {/* Page Header */}
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">PDF Reports</h1>
-          <p className="text-muted-foreground">
+        <div className="animate-enter">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+            <span>Documents</span>
+          </div>
+          <h1 className="text-4xl lg:text-5xl font-serif tracking-tight mb-2">
+            PDF Reports
+          </h1>
+          <p className="text-lg text-muted-foreground max-w-2xl">
             Generate and download professional dividend reports
           </p>
         </div>
 
         {/* Report Type Selection */}
-        <Card>
+        <Card className="overflow-hidden animate-enter" style={{ animationDelay: '75ms' }}>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Generate Report
-            </CardTitle>
-            <CardDescription>
-              Select a report type and period to generate your dividend report
-            </CardDescription>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                <FileDown className="h-5 w-5 text-amber-400" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Generate Report</CardTitle>
+                <CardDescription>
+                  Select a report type and period to generate your dividend report
+                </CardDescription>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Report Type Tabs */}
@@ -252,51 +265,51 @@ export default function ReportsPage() {
                 <div className="space-y-6">
                   {/* Summary Stats */}
                   <div className="grid gap-4 md:grid-cols-3">
-                    <div className="p-4 bg-muted rounded-lg">
+                    <div className="p-4 rounded-xl border border-green-500/20 bg-green-500/5">
                       <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                        <DollarSign className="h-4 w-4" />
+                        <DollarSign className="h-4 w-4 text-green-400" />
                         <span className="text-xs">Total Dividends</span>
                       </div>
-                      <p className="text-2xl font-bold">
+                      <p className="text-2xl font-bold number-display value-positive">
                         {formatCurrency(preview.total_dividends)}
                       </p>
                     </div>
-                    <div className="p-4 bg-muted rounded-lg">
+                    <div className="p-4 rounded-xl border border-blue-500/20 bg-blue-500/5">
                       <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                        <Calendar className="h-4 w-4" />
+                        <Calendar className="h-4 w-4 text-blue-400" />
                         <span className="text-xs">Payments</span>
                       </div>
-                      <p className="text-2xl font-bold">{preview.dividend_count}</p>
+                      <p className="text-2xl font-bold number-display">{preview.dividend_count}</p>
                     </div>
-                    <div className="p-4 bg-muted rounded-lg">
+                    <div className="p-4 rounded-xl border border-purple-500/20 bg-purple-500/5">
                       <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                        <BarChart3 className="h-4 w-4" />
+                        <BarChart3 className="h-4 w-4 text-purple-400" />
                         <span className="text-xs">Unique Stocks</span>
                       </div>
-                      <p className="text-2xl font-bold">{preview.unique_stocks}</p>
+                      <p className="text-2xl font-bold number-display">{preview.unique_stocks}</p>
                     </div>
                   </div>
 
                   {/* Top Stocks Table */}
                   <div>
                     <h4 className="text-sm font-medium mb-3">Top Stocks</h4>
-                    <div className="border rounded-lg overflow-hidden">
-                      <table className="w-full text-sm">
-                        <thead className="bg-muted">
+                    <div className="rounded-lg border border-border/50 overflow-hidden">
+                      <table className="table-enhanced w-full text-sm">
+                        <thead>
                           <tr>
-                            <th className="text-left py-2 px-4">Ticker</th>
-                            <th className="text-left py-2 px-4">Company</th>
-                            <th className="text-right py-2 px-4">Total</th>
+                            <th className="text-left">Ticker</th>
+                            <th className="text-left">Company</th>
+                            <th className="text-right">Total</th>
                           </tr>
                         </thead>
                         <tbody>
                           {preview.top_stocks.map((stock) => (
-                            <tr key={stock.ticker} className="border-t border-muted">
-                              <td className="py-2 px-4 font-medium">{stock.ticker}</td>
-                              <td className="py-2 px-4 text-muted-foreground truncate max-w-[200px]">
+                            <tr key={stock.ticker}>
+                              <td className="font-medium">{stock.ticker}</td>
+                              <td className="text-muted-foreground truncate max-w-[200px]">
                                 {stock.name}
                               </td>
-                              <td className="py-2 px-4 text-right font-semibold">
+                              <td className="text-right number-display value-positive">
                                 {formatCurrency(stock.total)}
                               </td>
                             </tr>

@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useMemo } from 'react';
 import { getChartTheme, getBaseLayout, QUALITATIVE_COLORS } from '@/lib/chartTheme';
+import { useIsDark } from '@/hooks/useTheme';
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
@@ -27,7 +28,8 @@ export function PlotlyPieChart({
   textInfo = 'percent+label',
   className,
 }: PlotlyPieChartProps) {
-  const theme = getChartTheme(true);
+  const isDark = useIsDark();
+  const theme = getChartTheme(isDark);
 
   const trace = useMemo(() => ({
     type: 'pie' as const,
@@ -97,7 +99,8 @@ export function PlotlyDonutChart({
   centerValue,
   className,
 }: PlotlyDonutChartProps) {
-  const theme = getChartTheme(true);
+  const isDark = useIsDark();
+  const theme = getChartTheme(isDark);
 
   const trace = useMemo(() => ({
     type: 'pie' as const,
