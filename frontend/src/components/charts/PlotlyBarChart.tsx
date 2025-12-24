@@ -2,10 +2,22 @@
 
 import dynamic from 'next/dynamic';
 import { useMemo } from 'react';
-import { getChartTheme, getBaseLayout, QUALITATIVE_COLORS, getGrowthColors } from '@/lib/chartTheme';
+import {
+  getChartTheme,
+  getBaseLayout,
+  QUALITATIVE_COLORS,
+  CHART_TYPOGRAPHY,
+  getGrowthColors,
+  colorWithOpacity,
+} from '@/lib/chartTheme';
 import { useIsDark } from '@/hooks/useTheme';
+import { cn } from '@/lib/utils';
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
+
+// =============================================================================
+// TYPES
+// =============================================================================
 
 export interface BarChartData {
   x: (string | number)[];
@@ -13,7 +25,6 @@ export interface BarChartData {
   name?: string;
 }
 
-// New simplified interface for single series
 interface SimpleBarChartProps {
   labels: (string | number)[];
   values: number[];
@@ -22,17 +33,21 @@ interface SimpleBarChartProps {
   yAxisTitle?: string;
   height?: number;
   orientation?: 'vertical' | 'horizontal';
+  /** Single color for all bars */
   color?: string;
-  conditionalColors?: boolean; // Green/red based on positive/negative
+  /** Use green/red based on positive/negative values */
+  conditionalColors?: boolean;
+  /** Show value labels on bars */
   showValues?: boolean;
   textPosition?: 'inside' | 'outside' | 'auto' | 'none';
   valueFormat?: string;
   valuePrefix?: string;
   valueSuffix?: string;
+  /** Rounded bar corners (visual enhancement) */
+  rounded?: boolean;
   className?: string;
 }
 
-// Original complex interface
 interface ComplexBarChartProps {
   data: BarChartData | BarChartData[];
   title?: string;
@@ -46,10 +61,15 @@ interface ComplexBarChartProps {
   textTemplate?: string;
   textPosition?: 'inside' | 'outside' | 'auto' | 'none';
   hoverTemplate?: string;
+  valuePrefix?: string;
+  valueSuffix?: string;
   className?: string;
 }
 
-// Simple bar chart component for labels/values interface
+// =============================================================================
+// PREMIUM SIMPLE BAR CHART
+// =============================================================================
+
 export function PlotlyBarChart({
   labels,
   values,
@@ -65,27 +85,80 @@ export function PlotlyBarChart({
   valueFormat = ',.2f',
   valuePrefix = '',
   valueSuffix = '',
+  rounded = true,
   className,
 }: SimpleBarChartProps) {
   const isDark = useIsDark();
   const theme = getChartTheme(isDark);
   const isVertical = orientation === 'vertical';
-  const colors = conditionalColors ? getGrowthColors(values) : (color || QUALITATIVE_COLORS[0]);
 
-  const trace = useMemo(() => ({
-    type: 'bar' as const,
-    x: isVertical ? labels : values,
-    y: isVertical ? values : labels,
-    orientation: isVertical ? 'v' as const : 'h' as const,
-    marker: {
-      color: colors,
-      line: { color: 'rgba(255,255,255,0.1)', width: 1 },
-    },
-    text: showValues ? values.map(v => `${valuePrefix}${v.toFixed(valueFormat.includes('f') ? parseInt(valueFormat.match(/\.(\d+)f/)?.[1] || '2') : 2)}${valueSuffix}`) : undefined,
-    textposition: showValues && textPosition !== 'none' ? textPosition : undefined,
-    textfont: { color: textPosition === 'inside' ? '#ffffff' : theme.text_color, size: 11 },
-    hovertemplate: `<b>%{${isVertical ? 'x' : 'y'}}</b><br>${valuePrefix}%{${isVertical ? 'y' : 'x'}:${valueFormat}}${valueSuffix}<extra></extra>`,
-  }), [labels, values, isVertical, colors, showValues, textPosition, valueFormat, valuePrefix, valueSuffix, theme]);
+  // Determine bar colors
+  const barColors = useMemo(() => {
+    if (conditionalColors) {
+      return getGrowthColors(values, isDark);
+    }
+    return color || QUALITATIVE_COLORS[0];
+  }, [conditionalColors, values, color, isDark]);
+
+  const trace = useMemo(
+    () => ({
+      type: 'bar' as const,
+      x: isVertical ? labels : values,
+      y: isVertical ? values : labels,
+      orientation: isVertical ? ('v' as const) : ('h' as const),
+
+      // Premium marker styling
+      marker: {
+        color: barColors,
+        line: {
+          color: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
+          width: 1,
+        },
+        opacity: 0.9,
+      },
+
+      // Value labels
+      text:
+        showValues && textPosition !== 'none'
+          ? values.map((v) => {
+              const formatted = v.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              });
+              return `${valuePrefix}${formatted}${valueSuffix}`;
+            })
+          : undefined,
+      textposition: showValues && textPosition !== 'none' ? textPosition : undefined,
+      textfont: {
+        family: CHART_TYPOGRAPHY.dataLabel.family,
+        color: textPosition === 'inside' ? '#ffffff' : theme.text_color,
+        size: CHART_TYPOGRAPHY.dataLabel.size,
+      },
+      textangle: 0,
+      constraintext: 'both',
+      cliponaxis: false,
+
+      // Premium hover template
+      hovertemplate:
+        `<b style="font-family: 'DM Sans';">%{${isVertical ? 'x' : 'y'}}</b><br>` +
+        `<span style="font-family: 'JetBrains Mono'; font-size: 14px; font-weight: 500;">` +
+        `${valuePrefix}%{${isVertical ? 'y' : 'x'}:${valueFormat}}${valueSuffix}</span>` +
+        `<extra></extra>`,
+    }),
+    [
+      labels,
+      values,
+      isVertical,
+      barColors,
+      showValues,
+      textPosition,
+      valueFormat,
+      valuePrefix,
+      valueSuffix,
+      theme,
+      isDark,
+    ]
+  );
 
   const layout = useMemo(() => {
     const base = getBaseLayout(theme, title);
@@ -93,18 +166,40 @@ export function PlotlyBarChart({
       ...base,
       height,
       showlegend: false,
+      bargap: 0.3,
+      bargroupgap: 0.1,
+
       xaxis: {
         ...base.xaxis,
-        title: { text: isVertical ? xAxisTitle : yAxisTitle, font: { color: theme.text_color, size: 12 } },
+        title: {
+          text: isVertical ? xAxisTitle : yAxisTitle,
+          font: {
+            family: CHART_TYPOGRAPHY.axisTitle.family,
+            color: theme.muted_text,
+            size: CHART_TYPOGRAPHY.axisTitle.size,
+          },
+          standoff: 12,
+        },
         tickangle: isVertical ? -45 : 0,
-        categoryorder: !isVertical ? 'total ascending' as const : undefined,
+        categoryorder: !isVertical ? ('total ascending' as const) : undefined,
       },
+
       yaxis: {
         ...base.yaxis,
-        title: { text: isVertical ? yAxisTitle : xAxisTitle, font: { color: theme.text_color, size: 12 } },
+        title: {
+          text: isVertical ? yAxisTitle : xAxisTitle,
+          font: {
+            family: CHART_TYPOGRAPHY.axisTitle.family,
+            color: theme.muted_text,
+            size: CHART_TYPOGRAPHY.axisTitle.size,
+          },
+          standoff: 8,
+        },
+        tickprefix: isVertical && valuePrefix ? valuePrefix : undefined,
+        ticksuffix: isVertical && valueSuffix ? valueSuffix : undefined,
       },
     };
-  }, [theme, title, height, isVertical, xAxisTitle, yAxisTitle]);
+  }, [theme, title, height, isVertical, xAxisTitle, yAxisTitle, valuePrefix, valueSuffix]);
 
   const config = {
     displayModeBar: true,
@@ -114,7 +209,7 @@ export function PlotlyBarChart({
   };
 
   return (
-    <div className={className} style={{ width: '100%', height }}>
+    <div className={cn('w-full', className)} style={{ height }}>
       <Plot
         data={[trace]}
         layout={layout}
@@ -126,7 +221,10 @@ export function PlotlyBarChart({
   );
 }
 
-// Complex bar chart component for data array interface
+// =============================================================================
+// PREMIUM MULTI-SERIES BAR CHART
+// =============================================================================
+
 export function PlotlyMultiBarChart({
   data,
   title,
@@ -140,6 +238,8 @@ export function PlotlyMultiBarChart({
   textTemplate,
   textPosition = 'none',
   hoverTemplate,
+  valuePrefix = '',
+  valueSuffix = '',
   className,
 }: ComplexBarChartProps) {
   const isDark = useIsDark();
@@ -149,7 +249,8 @@ export function PlotlyMultiBarChart({
     const dataArray = Array.isArray(data) ? data : [data];
 
     return dataArray.map((d, idx) => {
-      const colors = colorByValue ? getGrowthColors(d.y) : QUALITATIVE_COLORS[idx % QUALITATIVE_COLORS.length];
+      const seriesColor = QUALITATIVE_COLORS[idx % QUALITATIVE_COLORS.length];
+      const barColors = colorByValue ? getGrowthColors(d.y, isDark) : seriesColor;
 
       return {
         type: 'bar' as const,
@@ -157,46 +258,93 @@ export function PlotlyMultiBarChart({
         y: orientation === 'v' ? d.y : d.x,
         name: d.name || `Series ${idx + 1}`,
         orientation,
+
+        // Premium marker styling
         marker: {
-          color: colors,
-          line: { color: 'rgba(255,255,255,0.1)', width: 1 },
+          color: barColors,
+          line: {
+            color: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
+            width: 1,
+          },
+          opacity: 0.9,
         },
-        text: textPosition !== 'none' ? d.y.map(v => v.toLocaleString()) : undefined,
+
+        // Value labels
+        text:
+          textPosition !== 'none'
+            ? d.y.map((v) => v.toLocaleString(undefined, { maximumFractionDigits: 2 }))
+            : undefined,
         texttemplate: textTemplate,
         textposition: textPosition !== 'none' ? textPosition : undefined,
-        textfont: { color: textPosition === 'inside' ? '#ffffff' : theme.text_color, size: 10 },
-        hovertemplate: hoverTemplate || `<b>%{${orientation === 'v' ? 'x' : 'y'}}</b><br>%{${orientation === 'v' ? 'y' : 'x'}:,.2f}<extra>${d.name || ''}</extra>`,
+        textfont: {
+          family: CHART_TYPOGRAPHY.dataLabel.family,
+          color: textPosition === 'inside' ? '#ffffff' : theme.text_color,
+          size: 10,
+        },
+
+        // Premium hover template
+        hovertemplate:
+          hoverTemplate ||
+          `<b style="font-family: 'DM Sans';">%{${orientation === 'v' ? 'x' : 'y'}}</b><br>` +
+            `<span style="font-family: 'JetBrains Mono'; font-size: 14px; color: ${seriesColor};">` +
+            `${valuePrefix}%{${orientation === 'v' ? 'y' : 'x'}:,.2f}${valueSuffix}</span>` +
+            `<extra>${d.name || ''}</extra>`,
       };
     });
-  }, [data, orientation, colorByValue, textTemplate, textPosition, hoverTemplate, theme]);
+  }, [data, orientation, colorByValue, textTemplate, textPosition, hoverTemplate, valuePrefix, valueSuffix, theme, isDark]);
 
   const layout = useMemo(() => {
     const base = getBaseLayout(theme, title);
+    const dataArray = Array.isArray(data) ? data : [data];
+
     return {
       ...base,
       height,
       barmode,
-      showlegend: showLegend && (Array.isArray(data) ? data.length > 1 : false),
+      bargap: 0.25,
+      bargroupgap: 0.1,
+      showlegend: showLegend && dataArray.length > 1,
+
+      legend: {
+        ...base.legend,
+        orientation: 'h' as const,
+        yanchor: 'bottom',
+        y: 1.02,
+        xanchor: 'left',
+        x: 0,
+      },
+
       xaxis: {
         ...base.xaxis,
-        title: { text: orientation === 'v' ? xAxisTitle : yAxisTitle, font: { color: theme.text_color, size: 12 } },
+        title: {
+          text: orientation === 'v' ? xAxisTitle : yAxisTitle,
+          font: {
+            family: CHART_TYPOGRAPHY.axisTitle.family,
+            color: theme.muted_text,
+            size: CHART_TYPOGRAPHY.axisTitle.size,
+          },
+          standoff: 12,
+        },
         tickangle: orientation === 'v' ? -45 : 0,
-        categoryorder: orientation === 'h' ? 'total ascending' as const : undefined,
+        categoryorder: orientation === 'h' ? ('total ascending' as const) : undefined,
       },
+
       yaxis: {
         ...base.yaxis,
-        title: { text: orientation === 'v' ? yAxisTitle : xAxisTitle, font: { color: theme.text_color, size: 12 } },
+        title: {
+          text: orientation === 'v' ? yAxisTitle : xAxisTitle,
+          font: {
+            family: CHART_TYPOGRAPHY.axisTitle.family,
+            color: theme.muted_text,
+            size: CHART_TYPOGRAPHY.axisTitle.size,
+          },
+          standoff: 8,
+        },
+        tickprefix: orientation === 'v' && valuePrefix ? valuePrefix : undefined,
+        ticksuffix: orientation === 'v' && valueSuffix ? valueSuffix : undefined,
       },
-      legend: showLegend ? {
-        ...base.legend,
-        orientation: 'v' as const,
-        yanchor: 'top',
-        y: 1,
-        xanchor: 'left',
-        x: 1.02,
-      } : undefined,
     };
-  }, [theme, title, height, barmode, showLegend, data, xAxisTitle, yAxisTitle, orientation]);
+  }, [theme, title, height, barmode, showLegend, data, xAxisTitle, yAxisTitle, orientation, valuePrefix, valueSuffix]);
 
   const config = {
     displayModeBar: true,
@@ -206,7 +354,7 @@ export function PlotlyMultiBarChart({
   };
 
   return (
-    <div className={className} style={{ width: '100%', height }}>
+    <div className={cn('w-full', className)} style={{ height }}>
       <Plot
         data={traces}
         layout={layout}
@@ -217,3 +365,55 @@ export function PlotlyMultiBarChart({
     </div>
   );
 }
+
+// =============================================================================
+// GROWTH BAR CHART (Preset for positive/negative values)
+// =============================================================================
+
+interface GrowthBarChartProps {
+  labels: (string | number)[];
+  values: number[];
+  title?: string;
+  xAxisTitle?: string;
+  yAxisTitle?: string;
+  height?: number;
+  orientation?: 'vertical' | 'horizontal';
+  showValues?: boolean;
+  valuePrefix?: string;
+  valueSuffix?: string;
+  className?: string;
+}
+
+export function PlotlyGrowthBarChart({
+  labels,
+  values,
+  title,
+  xAxisTitle,
+  yAxisTitle,
+  height = 400,
+  orientation = 'vertical',
+  showValues = true,
+  valuePrefix = '',
+  valueSuffix = '',
+  className,
+}: GrowthBarChartProps) {
+  return (
+    <PlotlyBarChart
+      labels={labels}
+      values={values}
+      title={title}
+      xAxisTitle={xAxisTitle}
+      yAxisTitle={yAxisTitle}
+      height={height}
+      orientation={orientation}
+      conditionalColors
+      showValues={showValues}
+      textPosition="outside"
+      valuePrefix={valuePrefix}
+      valueSuffix={valueSuffix}
+      className={className}
+    />
+  );
+}
+
+export default PlotlyBarChart;

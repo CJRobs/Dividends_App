@@ -1141,8 +1141,317 @@ a:focus-visible {
 }
 
 /* =====================================================
-   Plotly Chart Overrides
+   Premium Chart Styles - Fintech Design System
    ===================================================== */
+
+/* ----- Chart Container Variants ----- */
+
+/* Glass container with backdrop blur */
+.chart-glass {
+  position: relative;
+  background: linear-gradient(
+    135deg,
+    rgba(28, 25, 23, 0.6) 0%,
+    rgba(28, 25, 23, 0.4) 100%
+  );
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.chart-glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-lg);
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(34, 197, 94, 0.2) 0%,
+    rgba(6, 182, 212, 0.1) 50%,
+    rgba(245, 158, 11, 0.15) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.5;
+  transition: opacity 0.4s ease;
+}
+
+.chart-glass:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 20px 40px -12px rgba(0, 0, 0, 0.4),
+    0 0 60px -20px rgba(34, 197, 94, 0.15);
+}
+
+.chart-glass:hover::before {
+  opacity: 1;
+}
+
+/* Light mode glass container */
+:root:not(.dark) .chart-glass {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(255, 255, 255, 0.6) 100%
+  );
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+:root:not(.dark) .chart-glass::before {
+  background: linear-gradient(
+    135deg,
+    rgba(22, 101, 52, 0.15) 0%,
+    rgba(8, 145, 178, 0.1) 50%,
+    rgba(217, 119, 6, 0.1) 100%
+  );
+}
+
+:root:not(.dark) .chart-glass:hover {
+  box-shadow:
+    0 20px 40px -12px rgba(0, 0, 0, 0.15),
+    0 0 60px -20px rgba(22, 101, 52, 0.1);
+}
+
+/* Gradient border container */
+.chart-gradient-border {
+  position: relative;
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.chart-gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-lg);
+  padding: 1.5px;
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    var(--accent) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.6;
+  transition: opacity 0.4s ease;
+}
+
+.chart-gradient-border:hover::before {
+  opacity: 1;
+}
+
+/* Minimal container - no border */
+.chart-minimal {
+  position: relative;
+  background: transparent;
+  border-radius: var(--radius-lg);
+}
+
+/* ----- Chart Entrance Animations ----- */
+
+.chart-animate-in {
+  animation: chartEnter 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes chartEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(24px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.chart-fade-in {
+  animation: chartFade 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes chartFade {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Staggered delays for multiple charts */
+.chart-delay-1 { animation-delay: 100ms; }
+.chart-delay-2 { animation-delay: 200ms; }
+.chart-delay-3 { animation-delay: 300ms; }
+.chart-delay-4 { animation-delay: 400ms; }
+
+/* Draw animation for line charts (via SVG) */
+.chart-draw-in path {
+  stroke-dasharray: 2000;
+  stroke-dashoffset: 2000;
+  animation: chartDraw 1.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes chartDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* ----- Chart Hover Effects ----- */
+
+.chart-hover-glow {
+  transition: filter 0.3s ease;
+}
+
+.chart-hover-glow:hover {
+  filter: drop-shadow(0 0 12px rgba(34, 197, 94, 0.3));
+}
+
+.chart-hover-lift {
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.chart-hover-lift:hover {
+  transform: translateY(-4px);
+}
+
+/* ----- Premium Chart Loading Skeleton ----- */
+
+.chart-skeleton {
+  position: relative;
+  background: linear-gradient(
+    135deg,
+    var(--muted) 0%,
+    rgba(255, 255, 255, 0.03) 50%,
+    var(--muted) 100%
+  );
+  background-size: 200% 200%;
+  animation: chartSkeletonPulse 2s ease-in-out infinite;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+@keyframes chartSkeletonPulse {
+  0%, 100% {
+    background-position: 0% 50%;
+    opacity: 0.6;
+  }
+  50% {
+    background-position: 100% 50%;
+    opacity: 0.8;
+  }
+}
+
+/* Line chart skeleton */
+.chart-skeleton-line {
+  position: relative;
+}
+
+.chart-skeleton-line::after {
+  content: '';
+  position: absolute;
+  bottom: 30%;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--primary) 20%,
+    var(--primary) 40%,
+    var(--accent) 60%,
+    var(--primary) 80%,
+    transparent 100%
+  );
+  opacity: 0.2;
+  border-radius: 1px;
+  animation: skeletonWave 2s ease-in-out infinite;
+}
+
+@keyframes skeletonWave {
+  0%, 100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(1.5);
+  }
+}
+
+/* Bar chart skeleton */
+.chart-skeleton-bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  padding: 20% 10%;
+  gap: 8%;
+}
+
+.chart-skeleton-bar-item {
+  flex: 1;
+  background: linear-gradient(
+    180deg,
+    var(--primary) 0%,
+    transparent 100%
+  );
+  opacity: 0.15;
+  border-radius: 4px 4px 0 0;
+  animation: skeletonBarGrow 1.5s ease-out infinite;
+}
+
+.chart-skeleton-bar-item:nth-child(1) { height: 60%; animation-delay: 0ms; }
+.chart-skeleton-bar-item:nth-child(2) { height: 80%; animation-delay: 100ms; }
+.chart-skeleton-bar-item:nth-child(3) { height: 45%; animation-delay: 200ms; }
+.chart-skeleton-bar-item:nth-child(4) { height: 90%; animation-delay: 300ms; }
+.chart-skeleton-bar-item:nth-child(5) { height: 70%; animation-delay: 400ms; }
+
+@keyframes skeletonBarGrow {
+  0%, 100% {
+    transform: scaleY(0.9);
+    opacity: 0.1;
+  }
+  50% {
+    transform: scaleY(1);
+    opacity: 0.2;
+  }
+}
+
+/* Pie/Donut skeleton */
+.chart-skeleton-pie {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chart-skeleton-pie::after {
+  content: '';
+  width: 60%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 12px solid transparent;
+  border-top-color: rgba(34, 197, 94, 0.15);
+  border-right-color: rgba(6, 182, 212, 0.15);
+  border-bottom-color: rgba(245, 158, 11, 0.15);
+  border-left-color: rgba(167, 139, 250, 0.15);
+  animation: skeletonPieRotate 3s linear infinite;
+}
+
+@keyframes skeletonPieRotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ----- Plotly Chart Overrides ----- */
 
 .js-plotly-plot .plotly .main-svg {
   background: transparent !important;
@@ -1150,11 +1459,230 @@ a:focus-visible {
 
 .js-plotly-plot .plotly .modebar {
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.3s ease;
 }
 
 .js-plotly-plot:hover .plotly .modebar {
   opacity: 1;
+}
+
+/* Premium modebar styling */
+.js-plotly-plot .plotly .modebar-btn {
+  opacity: 0.6;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.js-plotly-plot .plotly .modebar-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.js-plotly-plot .plotly .modebar-btn.active {
+  opacity: 1;
+}
+
+/* Enhanced tooltip styling */
+.js-plotly-plot .hoverlayer .hovertext {
+  transition: opacity 0.15s ease;
+}
+
+.js-plotly-plot .hoverlayer .hovertext rect {
+  rx: 8 !important;
+  ry: 8 !important;
+}
+
+/* Crosshair styling */
+.js-plotly-plot .xlines,
+.js-plotly-plot .ylines {
+  stroke: rgba(34, 197, 94, 0.3) !important;
+  stroke-width: 1 !important;
+  stroke-dasharray: 4 4 !important;
+}
+
+/* Point hover glow effect */
+.js-plotly-plot .scatterlayer .trace .points path:hover {
+  filter: drop-shadow(0 0 8px currentColor);
+}
+
+/* Bar hover brightness */
+.js-plotly-plot .barlayer .trace .points path {
+  transition: filter 0.2s ease, transform 0.2s ease;
+}
+
+.js-plotly-plot .barlayer .trace .points path:hover {
+  filter: brightness(1.15);
+}
+
+/* Pie/Donut slice hover */
+.js-plotly-plot .pielayer .slice path {
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ----- Chart Header Styling ----- */
+
+.chart-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.chart-header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.chart-title {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: 1.125rem;
+  font-weight: 400;
+  color: var(--foreground);
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+.chart-subtitle {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+  line-height: 1.4;
+}
+
+.chart-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius);
+  background: linear-gradient(
+    135deg,
+    rgba(34, 197, 94, 0.1) 0%,
+    rgba(6, 182, 212, 0.1) 100%
+  );
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+/* ----- Chart Actions ----- */
+
+.chart-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.chart-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted-foreground);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chart-action-btn:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.chart-action-btn:active {
+  transform: scale(0.95);
+}
+
+/* ----- Chart Value Display ----- */
+
+.chart-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-value-large {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.chart-value-positive {
+  color: var(--success);
+}
+
+.chart-value-negative {
+  color: var(--destructive);
+}
+
+.chart-value-neutral {
+  color: var(--muted-foreground);
+}
+
+/* ----- Chart Legend Enhancement ----- */
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.chart-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.chart-legend-item:hover {
+  color: var(--foreground);
+}
+
+.chart-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.chart-legend-item.inactive {
+  opacity: 0.4;
+}
+
+.chart-legend-item.inactive .chart-legend-dot {
+  background: var(--muted-foreground) !important;
+}
+
+/* ----- Responsive Chart Adjustments ----- */
+
+@media (max-width: 640px) {
+  .chart-glass,
+  .chart-gradient-border {
+    border-radius: var(--radius);
+  }
+
+  .chart-title {
+    font-size: 1rem;
+  }
+
+  .chart-legend {
+    gap: 0.75rem;
+  }
+
+  .chart-legend-item {
+    font-size: 0.75rem;
+  }
 }
 
 /* =====================================================
