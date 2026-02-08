@@ -7,6 +7,7 @@ for secure environment variable handling.
 
 from typing import Dict
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator
 from functools import lru_cache
 
 
@@ -44,6 +45,28 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=False
     )
+
+    @field_validator('alpha_vantage_api_key')
+    @classmethod
+    def validate_api_key(cls, v: str) -> str:
+        """Prevent placeholder or missing API keys."""
+        placeholder_values = ['your_api_key_here', 'YOUR_API_KEY', 'placeholder', '']
+        if v in placeholder_values:
+            raise ValueError(
+                "ALPHA_VANTAGE_API_KEY not configured. "
+                "Copy .env.example to .env and add your API key."
+            )
+        if len(v) < 10:
+            raise ValueError("ALPHA_VANTAGE_API_KEY appears invalid (too short)")
+        return v
+
+    @field_validator('data_path')
+    @classmethod
+    def validate_data_path(cls, v: str) -> str:
+        """Basic path validation."""
+        if not v:
+            raise ValueError("DATA_PATH cannot be empty")
+        return v
 
     @property
     def cors_origins_list(self) -> list[str]:

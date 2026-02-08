@@ -10,6 +10,9 @@ from datetime import datetime
 from typing import Union, Optional
 from pathlib import Path
 from functools import lru_cache
+from app.utils.logging_config import get_logger
+
+logger = get_logger()
 
 
 def parse_datetime(column: pd.Series) -> pd.Series:
@@ -57,7 +60,7 @@ def load_data(data_path: str) -> pd.DataFrame:
                 df = pd.read_csv(csv_file)
                 dfs.append(df)
             except Exception as e:
-                print(f"Warning: Could not read {csv_file}: {e}")
+                logger.warning(f"Could not read {csv_file}: {e}")
 
         if not dfs:
             raise pd.errors.EmptyDataError("No valid CSV files could be read")

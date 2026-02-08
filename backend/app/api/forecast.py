@@ -20,7 +20,9 @@ from concurrent.futures import ThreadPoolExecutor
 from app.dependencies import get_data
 from app.models.portfolio import FICalculatorResponse
 from app.utils import cached_response
+from app.utils.logging_config import get_logger
 
+logger = get_logger()
 warnings.filterwarnings('ignore')
 
 router = APIRouter()
@@ -198,7 +200,7 @@ def forecast_sarimax(series: pd.Series, months: int) -> Optional[ForecastResult]
             annual_projections=annual_projections
         )
     except Exception as e:
-        print(f"SARIMAX error: {e}")
+        logger.warning(f"SARIMAX forecast failed: {e}")
         return None
 
 
@@ -265,7 +267,7 @@ def forecast_holt_winters(series: pd.Series, months: int) -> Optional[ForecastRe
             annual_projections=annual_projections
         )
     except Exception as e:
-        print(f"Holt-Winters error: {e}")
+        logger.warning(f"Holt-Winters forecast failed: {e}")
         return None
 
 
@@ -393,7 +395,7 @@ def forecast_prophet(series: pd.Series, months: int) -> Optional[ForecastResult]
             annual_projections=annual_projections
         )
     except Exception as e:
-        print(f"Prophet error: {e}")
+        logger.warning(f"Prophet forecast failed: {e}")
         return None
 
 
@@ -472,7 +474,7 @@ def forecast_theta(series: pd.Series, months: int) -> Optional[ForecastResult]:
             annual_projections=annual_projections
         )
     except Exception as e:
-        print(f"Theta error: {e}")
+        logger.warning(f"Theta forecast failed: {e}")
         return None
 
 

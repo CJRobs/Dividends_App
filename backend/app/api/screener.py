@@ -15,6 +15,9 @@ import hashlib
 import json
 
 from app.config import get_settings
+from app.utils.logging_config import get_logger
+
+logger = get_logger()
 
 # TTL-based cache for API responses (24 hours for fundamental data)
 _response_cache: Dict[str, tuple[Any, datetime]] = {}
@@ -205,18 +208,18 @@ def _fetch_alpha_vantage_sync(function: str, symbol: str) -> Optional[Dict[str, 
 
         # Check for API errors
         if "Error Message" in data:
-            print(f"Alpha Vantage API error for {symbol}: {data.get('Error Message')}")
+            logger.warning(f"Alpha Vantage API error for {symbol}: {data.get('Error Message')}")
             return None
         if "Note" in data:  # Rate limit hit
-            print(f"Alpha Vantage rate limit: {data.get('Note')}")
+            logger.warning(f"Alpha Vantage rate limit hit: {data.get('Note')}")
             return None
         if "Information" in data:  # API limit message
-            print(f"Alpha Vantage info: {data.get('Information')}")
+            logger.info(f"Alpha Vantage: {data.get('Information')}")
             return None
 
         return data
     except Exception as e:
-        print(f"Fetch error for {function}/{symbol}: {e}")
+        logger.error(f"Fetch error for {function}/{symbol}: {e}", exc_info=True)
         return None
 
 

@@ -64,16 +64,33 @@ The app will be available at:
 
 ### Environment Variables
 
-**Backend** (`backend/.env`):
-```env
-ALPHA_VANTAGE_API_KEY=your_api_key_here
-DATA_PATH=../data/dividends.csv
-```
+**Backend Configuration:**
+
+1. Copy the example environment file:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Edit `.env` and add your API key:
+   ```env
+   ALPHA_VANTAGE_API_KEY=your_actual_api_key_here  # Get from https://www.alphavantage.co/support/#api-key
+   DATA_PATH=../data/dividends.csv
+   ENVIRONMENT=development  # or 'production'
+   ```
+
+3. **⚠️ Security:** Never commit `.env` files to git. The API key should remain private.
 
 **Frontend** (`frontend/.env.local`):
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
+
+### Getting an Alpha Vantage API Key
+
+1. Visit [Alpha Vantage](https://www.alphavantage.co/support/#api-key)
+2. Sign up for a free API key
+3. Add it to your `.env` file
+4. The screener feature requires this key for stock research
 
 ### Data Format
 
@@ -147,6 +164,44 @@ cd original
 pip install -r ../requirements.txt
 streamlit run dividend_app.py
 ```
+
+## Security
+
+### Best Practices
+
+- **Never commit API keys** - Use `.env` files (already in `.gitignore`)
+- **Rotate keys regularly** - Change your Alpha Vantage API key periodically
+- **Protect your data** - CSV files contain personal financial information
+- **Use HTTPS in production** - Configure a reverse proxy with TLS
+
+### Application Logs
+
+**Development Mode:**
+- Logs output to console only
+- DEBUG level logging for detailed troubleshooting
+
+**Production Mode:**
+- Logs saved to `backend/logs/app.log`
+- Automatic log rotation (10MB max size, 5 backups)
+- INFO level logging for performance
+
+To enable production logging:
+```bash
+export ENVIRONMENT=production
+cd backend && uvicorn app.main:app
+```
+
+### Security Features
+
+- ✅ Environment variable validation at startup
+- ✅ API key format validation
+- ✅ Data schema validation
+- ✅ File permission checks
+- ✅ Structured logging with audit trail
+- ✅ Request/response logging
+- ✅ Graceful error handling
+
+For more details, see [SECURITY.md](SECURITY.md)
 
 ## License
 

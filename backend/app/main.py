@@ -8,15 +8,24 @@ dividend portfolio data and analysis endpoints.
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
 from contextlib import asynccontextmanager
 import pandas as pd
+import time
+import os
+from pathlib import Path
 from typing import Optional
 
 from app.config import get_settings
-from app.services.data_processor import load_data, preprocess_data, get_monthly_data
+from app.services.data_processor import load_data, preprocess_data, get_monthly_data, validate_dataframe
 from app.api import overview, monthly, stocks, screener, forecast, reports
 from app.dependencies import set_data, get_data_status
 from app.utils.cache import clear_cache
+from app.utils.logging_config import setup_logging
+
+# Initialize logging at module level
+logger = setup_logging()
 
 
 @asynccontextmanager
@@ -25,23 +34,68 @@ async def lifespan(app: FastAPI):
     # Startup: Load data
     settings = get_settings()
     try:
-        print(f"Loading data from: {settings.data_path}")
+        logger.info(f"Loading data from: {settings.data_path}")
+
+        # Validate data path exists before loading
+        data_file = Path(settings.data_path)
+
+        if not data_file.exists():
+            logger.error(f"Data file not found: {settings.data_path}")
+            logger.warning("Application starting in degraded mode - API endpoints will return 503")
+            yield
+            return
+
+        if not data_file.is_file():
+            logger.error(f"Data path is not a file: {settings.data_path}")
+            logger.warning("Application starting in degraded mode")
+            yield
+            return
+
+        # Check file permissions
+        if not os.access(data_file, os.R_OK):
+            logger.error(f"Data file not readable (permission denied): {settings.data_path}")
+            logger.warning("Application starting in degraded mode")
+            yield
+            return
+
+        # Load and validate data
         df = load_data(settings.data_path)
         df = preprocess_data(df)
-        monthly_data = get_monthly_data(df)
 
-        # Store in shared dependencies module
+        # Validate schema
+        required_columns = ["Time", "Ticker", "Name", "Total"]
+        is_valid, error_msg = validate_dataframe(df, required_columns)
+        if not is_valid:
+            logger.error(f"Data validation failed: {error_msg}")
+            logger.warning("Application starting in degraded mode")
+            yield
+            return
+
+        monthly_data = get_monthly_data(df)
         set_data(df, monthly_data)
 
-        print(f"✓ Data loaded successfully: {len(df)} records")
+        logger.info(
+            f"Data loaded successfully: {len(df)} records, "
+            f"{len(df['Ticker'].unique())} unique tickers"
+        )
+
+    except FileNotFoundError as e:
+        logger.error(f"Data file not found: {e}")
+        logger.warning("Application starting in degraded mode - check DATA_PATH in .env")
+    except PermissionError as e:
+        logger.error(f"Permission denied reading data file: {e}")
+        logger.warning("Application starting in degraded mode - check file permissions")
+    except pd.errors.EmptyDataError as e:
+        logger.error(f"Data file is empty: {e}")
+        logger.warning("Application starting in degraded mode")
     except Exception as e:
-        print(f"✗ Error loading data: {e}")
-        # Continue anyway - will return errors on API calls
+        logger.error(f"Unexpected error loading data: {e}", exc_info=True)
+        logger.warning("Application starting in degraded mode")
 
     yield
 
     # Shutdown: Cleanup
-    print("Shutting down...")
+    logger.info("Application shutting down")
 
 
 # Create FastAPI app
@@ -61,6 +115,29 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# Request logging middleware
+class RequestLoggingMiddleware(BaseHTTPMiddleware):
+    """Middleware to log all API requests and responses."""
+
+    async def dispatch(self, request: Request, call_next):
+        start_time = time.time()
+
+        logger.info(f"Request: {request.method} {request.url.path}")
+
+        response = await call_next(request)
+
+        duration = time.time() - start_time
+        logger.info(
+            f"Response: {request.method} {request.url.path} "
+            f"Status={response.status_code} Duration={duration:.3f}s"
+        )
+
+        return response
+
+
+app.add_middleware(RequestLoggingMiddleware)
 
 
 # Include routers
@@ -105,21 +182,55 @@ async def reload_data():
     """Reload data from source and clear cache (admin endpoint)."""
     try:
         settings = get_settings()
+        logger.info("Manual data reload requested")
+
+        # Validate file exists
+        data_file = Path(settings.data_path)
+        if not data_file.exists():
+            logger.error(f"Data file not found during reload: {settings.data_path}")
+            raise HTTPException(
+                status_code=404,
+                detail=f"Data file not found: {settings.data_path}"
+            )
+
+        # Load and validate
         df = load_data(settings.data_path)
         df = preprocess_data(df)
-        monthly_data = get_monthly_data(df)
 
-        # Update shared data and clear response cache
+        # Validate schema
+        required_columns = ["Time", "Ticker", "Name", "Total"]
+        is_valid, error_msg = validate_dataframe(df, required_columns)
+        if not is_valid:
+            logger.error(f"Data validation failed during reload: {error_msg}")
+            raise HTTPException(status_code=400, detail=error_msg)
+
+        monthly_data = get_monthly_data(df)
         set_data(df, monthly_data)
         cache_cleared = clear_cache()
+
+        logger.info(f"Data reloaded successfully: {len(df)} records")
 
         return {
             "status": "success",
             "message": "Data reloaded successfully",
             "record_count": len(df),
+            "unique_tickers": len(df['Ticker'].unique()),
+            "date_range": {
+                "start": df['Time'].min().isoformat(),
+                "end": df['Time'].max().isoformat()
+            },
             "cache_entries_cleared": cache_cleared
         }
+    except HTTPException:
+        raise
+    except FileNotFoundError as e:
+        logger.error(f"File not found during reload: {e}")
+        raise HTTPException(status_code=404, detail=f"File not found: {str(e)}")
+    except pd.errors.EmptyDataError:
+        logger.error("Empty data file during reload")
+        raise HTTPException(status_code=400, detail="Data file is empty")
     except Exception as e:
+        logger.error(f"Failed to reload data: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to reload data: {str(e)}")
 
 
