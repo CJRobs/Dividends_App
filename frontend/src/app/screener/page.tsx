@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import dynamic from 'next/dynamic';
 import { Layout } from '@/components/layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -32,13 +33,38 @@ import { cn } from '@/lib/utils';
 import { formatPercentage, formatLargeNumber } from '@/lib/constants';
 import api from '@/lib/api';
 
-// Plotly Charts
-import {
-  PlotlyDualAxisChart,
-  PlotlyCashFlowChart,
-  PlotlyGroupedBarChart,
-} from '@/components/charts/plotly';
-import { PlotlyLineChart } from '@/components/charts/PlotlyLineChart';
+// Lazy load Plotly charts
+const PlotlyDualAxisChart = dynamic(
+  () => import('@/components/charts/plotly').then(mod => ({ default: mod.PlotlyDualAxisChart })),
+  {
+    loading: () => <Skeleton className="h-[400px]" />,
+    ssr: false,
+  }
+);
+
+const PlotlyCashFlowChart = dynamic(
+  () => import('@/components/charts/plotly').then(mod => ({ default: mod.PlotlyCashFlowChart })),
+  {
+    loading: () => <Skeleton className="h-[400px]" />,
+    ssr: false,
+  }
+);
+
+const PlotlyGroupedBarChart = dynamic(
+  () => import('@/components/charts/plotly').then(mod => ({ default: mod.PlotlyGroupedBarChart })),
+  {
+    loading: () => <Skeleton className="h-[400px]" />,
+    ssr: false,
+  }
+);
+
+const PlotlyLineChart = dynamic(
+  () => import('@/components/charts/PlotlyLineChart').then(mod => ({ default: mod.PlotlyLineChart })),
+  {
+    loading: () => <Skeleton className="h-[400px]" />,
+    ssr: false,
+  }
+);
 
 interface CompanyOverview {
   symbol: string;

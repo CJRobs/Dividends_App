@@ -19,10 +19,15 @@ from typing import Optional
 
 from app.config import get_settings
 from app.services.data_processor import load_data, preprocess_data, get_monthly_data, validate_dataframe
-from app.api import overview, monthly, stocks, screener, forecast, reports
+from app.api import overview, monthly, stocks, screener, forecast, reports, auth, calendar
 from app.dependencies import set_data, get_data_status
 from app.utils.cache import clear_cache
 from app.utils.logging_config import setup_logging
+from app.middleware.rate_limit import limiter
+from app.middleware.security_headers import SecurityHeadersMiddleware
+from app.middleware.error_logging import ErrorLoggingMiddleware
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 # Initialize logging at module level
 logger = setup_logging()
@@ -112,9 +117,19 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Explicit methods only
+    allow_headers=["Authorization", "Content-Type", "Accept"],  # Explicit headers only
 )
+
+# Configure rate limiting
+app.state.limiter = limiter
+app.add_middleware(SlowAPIMiddleware)
+
+# Add security headers
+app.add_middleware(SecurityHeadersMiddleware)
+
+# Add error logging (captures all unhandled exceptions)
+app.add_middleware(ErrorLoggingMiddleware)
 
 
 # Request logging middleware
@@ -141,12 +156,15 @@ app.add_middleware(RequestLoggingMiddleware)
 
 
 # Include routers
+# Auth router (no prefix - already has /api/auth in router definition)
+app.include_router(auth.router)
 app.include_router(overview.router, prefix="/api/overview", tags=["Overview"])
 app.include_router(monthly.router, prefix="/api/monthly", tags=["Monthly Analysis"])
 app.include_router(stocks.router, prefix="/api/stocks", tags=["Stock Analysis"])
 app.include_router(screener.router, prefix="/api/screener", tags=["Dividend Screener"])
 app.include_router(forecast.router, prefix="/api/forecast", tags=["Forecast"])
 app.include_router(reports.router, prefix="/api/reports", tags=["PDF Reports"])
+app.include_router(calendar.router, prefix="/api/calendar", tags=["Calendar"])
 
 
 @app.get("/", tags=["Health"])
@@ -235,6 +253,19 @@ async def reload_data():
 
 
 # Custom exception handler
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request, exc):
+    """Handle rate limit exceeded errors."""
+    return JSONResponse(
+        status_code=429,
+        content={
+            "error": "Rate limit exceeded. Please try again later.",
+            "status_code": 429,
+            "detail": "Too many requests"
+        }
+    )
+
+
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc):
     """Handle HTTP exceptions with consistent format."""

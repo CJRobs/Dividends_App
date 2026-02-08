@@ -1,0 +1,64 @@
+[run]
+# Coverage.py configuration
+
+# Source code to measure
+source = app
+
+# Files to omit from coverage
+omit =
+    */tests/*
+    */test_*.py
+    */__pycache__/*
+    */venv/*
+    */env/*
+    */migrations/*
+    */.venv/*
+
+# Run branch coverage in addition to statement coverage
+branch = True
+
+[report]
+# Reporting options
+
+# Show lines that weren't executed
+show_missing = True
+
+# Exclude lines from coverage
+exclude_lines =
+    # Have to re-enable the standard pragma
+    pragma: no cover
+
+    # Don't complain about missing debug-only code
+    def __repr__
+    def __str__
+
+    # Don't complain if tests don't hit defensive assertion code
+    raise AssertionError
+    raise NotImplementedError
+
+    # Don't complain if non-runnable code isn't run
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    if typing.TYPE_CHECKING:
+
+    # Don't complain about abstract methods
+    @abstractmethod
+    @abc.abstractmethod
+
+    # Don't complain about pass statements
+    pass
+
+# Precision for coverage percentage
+precision = 2
+
+# Sort output
+sort = Cover
+
+[html]
+# HTML report options
+directory = htmlcov
+title = Dividend Dashboard Test Coverage Report
+
+[xml]
+# XML report for CI/CD
+output = coverage.xml

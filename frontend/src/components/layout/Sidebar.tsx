@@ -10,6 +10,7 @@ import { usePathname } from 'next/navigation';
 import {
   BarChart3,
   Calendar,
+  CalendarDays,
   Building2,
   Search,
   TrendingUp,
@@ -26,6 +27,7 @@ import { usePortfolioStore } from '@/store/portfolioStore';
 const navigation = [
   { name: 'Overview', href: '/', icon: BarChart3, description: 'Portfolio summary' },
   { name: 'Monthly', href: '/monthly', icon: Calendar, description: 'Monthly breakdown' },
+  { name: 'Calendar', href: '/calendar', icon: CalendarDays, description: 'Dividend calendar' },
   { name: 'Stocks', href: '/stocks', icon: Building2, description: 'Stock analysis' },
   { name: 'Screener', href: '/screener', icon: Search, description: 'Research stocks' },
   { name: 'Forecast', href: '/forecast', icon: TrendingUp, description: 'Future projections' },

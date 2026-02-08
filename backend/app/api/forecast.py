@@ -7,7 +7,7 @@ Provides dividend forecasting using multiple models:
 - Simple Moving Average (as fallback)
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, Request
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import pandas as pd
@@ -21,6 +21,7 @@ from app.dependencies import get_data
 from app.models.portfolio import FICalculatorResponse
 from app.utils import cached_response
 from app.utils.logging_config import get_logger
+from app.middleware.rate_limit import limiter, get_rate_limit
 
 logger = get_logger()
 warnings.filterwarnings('ignore')
@@ -539,8 +540,10 @@ def create_ensemble(forecasts: List[ForecastResult], series: pd.Series, months: 
 
 
 @router.get("/", response_model=ForecastResponse)
+@limiter.limit(get_rate_limit("expensive"))
 @cached_response(ttl_minutes=10)
 async def get_all_forecasts(
+    request: Request,
     months: int = Query(default=12, ge=1, le=36, description="Forecast horizon in months"),
     lookback: int = Query(default=0, ge=0, le=120, description="Lookback months for training (0 = use all data)"),
     data: tuple = Depends(get_data)

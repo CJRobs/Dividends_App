@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import dynamic from 'next/dynamic';
 import { Layout } from '@/components/layout/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,10 +11,26 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TrendingUp, Calendar, Info, Sparkles, Calculator, Gauge, Settings2, ChartLine } from 'lucide-react';
-import { PlotlyForecastChart, PlotlyProjectionBarChart } from '@/components/charts/PlotlyForecast';
 import { formatCurrency } from '@/lib/constants';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
+
+// Lazy load forecast charts
+const PlotlyForecastChart = dynamic(
+  () => import('@/components/charts/PlotlyForecast').then(mod => ({ default: mod.PlotlyForecastChart })),
+  {
+    loading: () => <Skeleton className="h-[500px]" />,
+    ssr: false,
+  }
+);
+
+const PlotlyProjectionBarChart = dynamic(
+  () => import('@/components/charts/PlotlyForecast').then(mod => ({ default: mod.PlotlyProjectionBarChart })),
+  {
+    loading: () => <Skeleton className="h-[400px]" />,
+    ssr: false,
+  }
+);
 
 interface ForecastPoint {
   date: string;

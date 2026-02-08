@@ -377,3 +377,27 @@ export interface AllForecastsResponse {
     is_partial: boolean;
   } | null;
 }
+
+// Calendar Types
+export interface DividendEvent {
+  date: string;
+  ticker: string;
+  company_name: string;
+  amount: number;
+  expected: boolean;
+}
+
+export interface CalendarMonth {
+  year: number;
+  month: number;
+  events: DividendEvent[];
+  total: number;
+}
+
+export interface UpcomingDividend {
+  ticker: string;
+  company_name: string;
+  expected_date: string;
+  estimated_amount: number;
+  confidence: 'low' | 'medium' | 'high';
+}

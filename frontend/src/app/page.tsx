@@ -29,11 +29,33 @@ import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useCountUp, formatCountUp } from '@/hooks/useCountUp';
+import { Suspense } from 'react';
+import dynamic from 'next/dynamic';
 
-// Plotly Charts
-import { PlotlyBarChart } from '@/components/charts/PlotlyBarChart';
-import { PlotlyLineChart } from '@/components/charts/PlotlyLineChart';
-import { PlotlyDonutChart } from '@/components/charts/PlotlyPieChart';
+// Lazy load Plotly charts (they're heavy ~3MB)
+const PlotlyBarChart = dynamic(
+  () => import('@/components/charts/PlotlyBarChart').then(mod => ({ default: mod.PlotlyBarChart })),
+  {
+    loading: () => <Skeleton className="h-[400px]" />,
+    ssr: false, // Plotly doesn't work well with SSR
+  }
+);
+
+const PlotlyLineChart = dynamic(
+  () => import('@/components/charts/PlotlyLineChart').then(mod => ({ default: mod.PlotlyLineChart })),
+  {
+    loading: () => <Skeleton className="h-[400px]" />,
+    ssr: false,
+  }
+);
+
+const PlotlyDonutChart = dynamic(
+  () => import('@/components/charts/PlotlyPieChart').then(mod => ({ default: mod.PlotlyDonutChart })),
+  {
+    loading: () => <Skeleton className="h-[400px]" />,
+    ssr: false,
+  }
+);
 
 interface DistributionData {
   portfolio_allocation: { name: string; value: number; fullName: string }[];

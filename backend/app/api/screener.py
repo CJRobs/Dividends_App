@@ -7,42 +7,18 @@ Provides stock analysis using Alpha Vantage API data.
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
-import requests
+import httpx
 import asyncio
 from datetime import datetime, timedelta
-from functools import lru_cache
 import hashlib
 import json
 
 from app.config import get_settings
 from app.utils.logging_config import get_logger
+from app.utils.validators import validate_ticker
+from app.utils.cache_manager import screener_cache
 
 logger = get_logger()
-
-# TTL-based cache for API responses (24 hours for fundamental data)
-_response_cache: Dict[str, tuple[Any, datetime]] = {}
-_CACHE_TTL_MINUTES = 1440  # 24 hours
-
-
-def _get_cache_key(prefix: str, symbol: str) -> str:
-    """Generate a unique cache key."""
-    return f"{prefix}:{symbol.upper()}"
-
-
-def _get_cached(key: str) -> Optional[Any]:
-    """Get cached value if not expired."""
-    if key in _response_cache:
-        value, timestamp = _response_cache[key]
-        if datetime.now() - timestamp < timedelta(minutes=_CACHE_TTL_MINUTES):
-            return value
-        # Expired, remove it
-        del _response_cache[key]
-    return None
-
-
-def _set_cache(key: str, value: Any) -> None:
-    """Store value in cache."""
-    _response_cache[key] = (value, datetime.now())
 
 router = APIRouter()
 
@@ -183,13 +159,15 @@ async def rate_limit_async():
         _last_av_request = datetime.now()
 
 
-@lru_cache(maxsize=100)
-def _fetch_alpha_vantage_sync(function: str, symbol: str) -> Optional[Dict[str, Any]]:
+async def fetch_alpha_vantage(function: str, symbol: str) -> Optional[Dict[str, Any]]:
     """
-    Synchronous fetch from Alpha Vantage API with caching.
+    Async fetch from Alpha Vantage API with rate limiting and caching.
     Supports both standard and time series endpoints.
     """
     settings = get_settings()
+
+    # Apply rate limiting
+    await rate_limit_async()
 
     try:
         params = {
@@ -202,9 +180,10 @@ def _fetch_alpha_vantage_sync(function: str, symbol: str) -> Optional[Dict[str, 
         if "TIME_SERIES" in function:
             params["outputsize"] = "compact"  # Last 100 data points
 
-        response = requests.get(settings.api_base_url, params=params, timeout=30)
-        response.raise_for_status()
-        data = response.json()
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(settings.api_base_url, params=params)
+            response.raise_for_status()
+            data = response.json()
 
         # Check for API errors
         if "Error Message" in data:
@@ -218,19 +197,12 @@ def _fetch_alpha_vantage_sync(function: str, symbol: str) -> Optional[Dict[str, 
             return None
 
         return data
+    except httpx.HTTPError as e:
+        logger.error(f"HTTP error for {function}/{symbol}: {e}", exc_info=True)
+        return None
     except Exception as e:
         logger.error(f"Fetch error for {function}/{symbol}: {e}", exc_info=True)
         return None
-
-
-async def fetch_alpha_vantage(function: str, symbol: str) -> Optional[Dict[str, Any]]:
-    """
-    Fetch data from Alpha Vantage API with rate limiting and caching.
-    """
-    # Apply rate limiting
-    await rate_limit_async()
-    # Call the cached synchronous function
-    return _fetch_alpha_vantage_sync(function, symbol)
 
 
 @router.get("/overview/{symbol}", response_model=CompanyOverview)
@@ -239,8 +211,11 @@ async def get_company_overview(symbol: str):
     Get company overview data from Alpha Vantage.
     Uses 24-hour TTL cache to minimize API calls.
     """
-    cache_key = _get_cache_key("overview", symbol)
-    cached = _get_cached(cache_key)
+    # Validate ticker format
+    symbol = validate_ticker(symbol)
+
+    cache_key = f"overview:{symbol.upper()}"
+    cached = screener_cache.get(cache_key)
     if cached is not None:
         return cached
 
@@ -275,7 +250,7 @@ async def get_company_overview(symbol: str):
         payout_ratio=safe_float(data.get("PayoutRatio")),
     )
 
-    _set_cache(cache_key, result)
+    screener_cache.set(cache_key, result)
     return result
 
 
@@ -287,8 +262,11 @@ async def get_dividend_history(symbol: str):
     Extracts dividends from the "7. dividend amount" field in monthly data.
     Uses 24-hour TTL cache to minimize API calls.
     """
-    cache_key = _get_cache_key("dividends", symbol)
-    cached = _get_cached(cache_key)
+    # Validate ticker format
+    symbol = validate_ticker(symbol)
+
+    cache_key = f"dividends:{symbol.upper()}"
+    cached = screener_cache.get(cache_key)
     if cached is not None:
         return cached
 
@@ -316,7 +294,7 @@ async def get_dividend_history(symbol: str):
     dividends.sort(key=lambda x: x.ex_date, reverse=True)
     result = dividends[:20]
 
-    _set_cache(cache_key, result)
+    screener_cache.set(cache_key, result)
     return result
 
 
@@ -326,8 +304,11 @@ async def get_income_statement(symbol: str):
     Get income statement data from Alpha Vantage.
     Uses 24-hour TTL cache to minimize API calls.
     """
-    cache_key = _get_cache_key("income", symbol)
-    cached = _get_cached(cache_key)
+    # Validate ticker format
+    symbol = validate_ticker(symbol)
+
+    cache_key = f"income:{symbol.upper()}"
+    cached = screener_cache.get(cache_key)
     if cached is not None:
         return cached
 
@@ -347,7 +328,7 @@ async def get_income_statement(symbol: str):
             ebitda=safe_float(item.get("ebitda")),
         ))
 
-    _set_cache(cache_key, statements)
+    screener_cache.set(cache_key, statements)
     return statements
 
 
@@ -357,8 +338,11 @@ async def get_balance_sheet(symbol: str):
     Get balance sheet data from Alpha Vantage with liquidity ratios.
     Uses 24-hour TTL cache to minimize API calls.
     """
-    cache_key = _get_cache_key("balance", symbol)
-    cached = _get_cached(cache_key)
+    # Validate ticker format
+    symbol = validate_ticker(symbol)
+
+    cache_key = f"balance:{symbol.upper()}"
+    cached = screener_cache.get(cache_key)
     if cached is not None:
         return cached
 
@@ -406,7 +390,7 @@ async def get_balance_sheet(symbol: str):
             debt_to_equity=debt_to_equity,
         ))
 
-    _set_cache(cache_key, sheets)
+    screener_cache.set(cache_key, sheets)
     return sheets
 
 
@@ -416,8 +400,11 @@ async def get_cash_flow(symbol: str):
     Get cash flow data from Alpha Vantage.
     Uses 24-hour TTL cache to minimize API calls.
     """
-    cache_key = _get_cache_key("cashflow", symbol)
-    cached = _get_cached(cache_key)
+    # Validate ticker format
+    symbol = validate_ticker(symbol)
+
+    cache_key = f"cashflow:{symbol.upper()}"
+    cached = screener_cache.get(cache_key)
     if cached is not None:
         return cached
 
@@ -442,7 +429,7 @@ async def get_cash_flow(symbol: str):
             dividend_payout=safe_float(item.get("dividendPayout")),
         ))
 
-    _set_cache(cache_key, flows)
+    screener_cache.set(cache_key, flows)
     return flows
 
 
@@ -665,6 +652,9 @@ async def get_full_analysis(symbol: str):
     """
     Get comprehensive stock analysis with enhanced metrics and risk scoring.
     """
+    # Validate ticker format
+    symbol = validate_ticker(symbol)
+
     # Fetch all data
     overview = await get_company_overview(symbol)
     dividends = await get_dividend_history(symbol)

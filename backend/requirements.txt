@@ -17,8 +17,16 @@ python-dotenv>=1.0.0
 # HTTP Requests
 requests>=2.31.0
 
+# Authentication & Security
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+slowapi>=0.1.9
+
 # PDF Generation
 reportlab>=4.0.0
+
+# Calendar Export
+icalendar>=5.0.0
 
 # File Upload Support
 python-multipart>=0.0.6

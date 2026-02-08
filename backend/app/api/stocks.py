@@ -27,6 +27,7 @@ from app.models.stocks import (
 )
 from app.dependencies import get_data
 from app.utils import to_python_type, cached_response
+from app.utils.validators import validate_ticker, validate_year
 
 router = APIRouter()
 
@@ -323,6 +324,9 @@ async def get_stocks_overview(data: tuple = Depends(get_data)):
 @router.get("/{ticker}", response_model=StockAnalysisResponse)
 async def get_stock_details(ticker: str, data: tuple = Depends(get_data)):
     """Get detailed analysis for a specific stock."""
+    # Validate ticker format
+    ticker = validate_ticker(ticker)
+
     df, monthly_data = data
 
     # Filter by ticker OR name (case-insensitive)
