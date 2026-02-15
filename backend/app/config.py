@@ -5,7 +5,7 @@ This module centralizes all configuration settings using Pydantic Settings
 for secure environment variable handling.
 """
 
-from typing import Dict
+from typing import Dict, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import field_validator
 from functools import lru_cache
@@ -20,9 +20,20 @@ class Settings(BaseSettings):
     api_reload: bool = True
 
     # Alpha Vantage API
-    alpha_vantage_api_key: str
+    alpha_vantage_api_key: str = ""
     api_base_url: str = "https://www.alphavantage.co/query"
     api_rate_limit_delay: float = 0.2
+
+    # Financial Modeling Prep API
+    fmp_api_key: Optional[str] = None
+    fmp_base_url: str = "https://financialmodelingprep.com/stable"
+
+    # Eulerpool API
+    eulerpool_api_key: Optional[str] = None
+    eulerpool_base_url: str = "https://api.eulerpool.com/api/1"
+
+    # Provider fallback
+    provider_fallback_enabled: bool = True
 
     # Application Settings
     default_currency: str = "GBP"
@@ -30,6 +41,15 @@ class Settings(BaseSettings):
 
     # Cache Settings
     cache_ttl_hours: int = 1
+
+    # File Cache Settings (Alpha Vantage API)
+    cache_dir: str = "backend/data/api_cache"
+    cache_enabled: bool = True
+    cache_ttl_overview_hours: int = 24
+    cache_ttl_dividends_hours: int = 48
+    cache_ttl_financials_hours: int = 168  # 7 days
+    cache_max_size_mb: int = 100
+    cache_warm_on_startup: bool = True
 
     # CORS Settings
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
@@ -54,15 +74,10 @@ class Settings(BaseSettings):
     @field_validator('alpha_vantage_api_key')
     @classmethod
     def validate_api_key(cls, v: str) -> str:
-        """Prevent placeholder or missing API keys."""
-        placeholder_values = ['your_api_key_here', 'YOUR_API_KEY', 'placeholder', '']
+        """Validate AV key if provided; empty string means disabled."""
+        placeholder_values = ['your_api_key_here', 'YOUR_API_KEY', 'placeholder']
         if v in placeholder_values:
-            raise ValueError(
-                "ALPHA_VANTAGE_API_KEY not configured. "
-                "Copy .env.example to .env and add your API key."
-            )
-        if len(v) < 10:
-            raise ValueError("ALPHA_VANTAGE_API_KEY appears invalid (too short)")
+            return ""
         return v
 
     @field_validator('data_path')

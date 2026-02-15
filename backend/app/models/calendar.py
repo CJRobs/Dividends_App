@@ -38,6 +38,19 @@ class UpcomingDividend(BaseModel):
     confidence: str = Field(..., description="Confidence level: low, medium, high")
 
 
+class UpcomingDividendLive(BaseModel):
+    """Upcoming dividend from live API data (FMP or yfinance)."""
+
+    ticker: str
+    company_name: str
+    ex_date: str = Field(..., description="Ex-dividend date (YYYY-MM-DD)")
+    amount: Optional[float] = Field(default=None, description="Dividend per share")
+    payment_date: Optional[str] = Field(default=None, description="Payment date (YYYY-MM-DD)")
+    record_date: Optional[str] = Field(default=None, description="Record date (YYYY-MM-DD)")
+    declaration_date: Optional[str] = Field(default=None, description="Declaration date (YYYY-MM-DD)")
+    source: str = Field(..., description="Data source: fmp or yfinance")
+
+
 class CalendarExportRequest(BaseModel):
     """Request parameters for calendar export."""
 

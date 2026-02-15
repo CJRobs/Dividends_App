@@ -73,7 +73,7 @@ export interface RecentDividend {
 export interface ChartData {
   labels: string[];
   values: number[];
-  colors?: string[];
+  colors?: string[] | null;
 }
 
 export interface TimeSeriesData {
@@ -400,4 +400,15 @@ export interface UpcomingDividend {
   expected_date: string;
   estimated_amount: number;
   confidence: 'low' | 'medium' | 'high';
+}
+
+export interface UpcomingDividendLive {
+  ticker: string;
+  company_name: string;
+  ex_date: string;
+  amount?: number;
+  payment_date?: string;
+  record_date?: string;
+  declaration_date?: string;
+  source: string;
 }

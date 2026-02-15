@@ -17,6 +17,9 @@ python-dotenv>=1.0.0
 # HTTP Requests
 requests>=2.31.0
 
+# Financial Data (yfinance fallback provider)
+yfinance>=0.2.0
+
 # Authentication & Security
 python-jose[cryptography]>=3.3.0
 passlib[bcrypt]>=1.7.4

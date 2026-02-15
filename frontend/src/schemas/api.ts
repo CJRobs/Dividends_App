@@ -177,9 +177,21 @@ export const UpcomingDividendSchema = z.object({
   confidence: z.enum(['low', 'medium', 'high']),
 });
 
+export const UpcomingDividendLiveSchema = z.object({
+  ticker: z.string(),
+  company_name: z.string(),
+  ex_date: z.string(),
+  amount: z.number().nullable().optional(),
+  payment_date: z.string().nullable().optional(),
+  record_date: z.string().nullable().optional(),
+  declaration_date: z.string().nullable().optional(),
+  source: z.string(),
+});
+
 export type CalendarMonth = z.infer<typeof CalendarMonthSchema>;
 export type DividendEvent = z.infer<typeof DividendEventSchema>;
 export type UpcomingDividend = z.infer<typeof UpcomingDividendSchema>;
+export type UpcomingDividendLive = z.infer<typeof UpcomingDividendLiveSchema>;
 
 // ============================================================================
 // Monthly Analysis Schemas

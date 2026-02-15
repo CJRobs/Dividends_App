@@ -11,7 +11,7 @@ import pandas as pd
 from icalendar import Calendar, Event as iCalEvent
 import logging
 
-from app.models.calendar import CalendarMonth, DividendEvent, UpcomingDividend
+from app.models.calendar import CalendarMonth, DividendEvent, UpcomingDividend, UpcomingDividendLive
 from app.dependencies import get_data
 from app.middleware.auth import require_auth
 from app.middleware.rate_limit import limiter
@@ -248,3 +248,29 @@ async def get_upcoming_dividends(
 
     logger.info(f"Found {len(upcoming)} upcoming dividends in next {days} days")
     return upcoming
+
+
+@router.get("/upcoming-live", response_model=List[UpcomingDividendLive])
+async def get_upcoming_dividends_live(
+    days: int = Query(default=90, ge=1, le=365, description="Number of days to look ahead"),
+    user: Dict = Depends(require_auth),
+    data: tuple = Depends(get_data),
+):
+    """
+    Get upcoming ex-dividend dates from live API data.
+
+    Tries FMP dividends-calendar first, falls back to yfinance per-stock.
+    Only returns dividends for stocks already in the portfolio.
+    """
+    from app.services.upcoming_dividends import fetch_upcoming_dividends
+
+    df, _ = data
+
+    # Extract unique tickers and company names from portfolio
+    tickers = df["Ticker"].unique().tolist()
+    company_names = dict(zip(df["Ticker"].str.upper(), df["Name"]))
+
+    results = await fetch_upcoming_dividends(tickers, company_names, days=days)
+
+    logger.info(f"Returning {len(results)} upcoming live dividends")
+    return results

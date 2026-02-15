@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from contextlib import asynccontextmanager
+import httpx
 import pandas as pd
 import time
 import os
@@ -84,6 +85,41 @@ async def lifespan(app: FastAPI):
             f"{len(df['Ticker'].unique())} unique tickers"
         )
 
+        # Initialize Alpha Vantage disk cache (if enabled)
+        if hasattr(settings, 'cache_enabled') and settings.cache_enabled:
+            try:
+                from app.services.alpha_vantage_cache import init_cache
+                import app.services.alpha_vantage_cache as cache_module
+
+                init_cache(settings)
+                logger.info("Alpha Vantage disk cache initialized")
+
+                # Warm cache from disk (if enabled)
+                if hasattr(settings, 'cache_warm_on_startup') and settings.cache_warm_on_startup:
+                    if cache_module.av_cache:
+                        loaded = cache_module.av_cache.warm_cache_from_disk()
+                        logger.info(f"Cache warmed: {loaded} entries loaded from disk")
+
+            except Exception as e:
+                logger.error(f"Failed to initialize Alpha Vantage cache: {e}", exc_info=True)
+                logger.warning("Continuing without disk cache")
+
+        # Initialize multi-provider orchestrator
+        try:
+            from app.services.providers import get_provider_chain
+            from app.services.data_orchestrator import DataOrchestrator
+            import app.services.data_orchestrator as orch_module
+
+            provider_chain = get_provider_chain(settings)
+            orch_module.orchestrator = DataOrchestrator(provider_chain)
+            app.state.orchestrator = orch_module.orchestrator
+
+            provider_names = [p.name for p in provider_chain]
+            logger.info(f"Data orchestrator initialized with providers: {provider_names}")
+        except Exception as e:
+            logger.error(f"Failed to initialize data orchestrator: {e}", exc_info=True)
+            logger.warning("Continuing without multi-provider fallback")
+
     except FileNotFoundError as e:
         logger.error(f"Data file not found: {e}")
         logger.warning("Application starting in degraded mode - check DATA_PATH in .env")
@@ -97,10 +133,33 @@ async def lifespan(app: FastAPI):
         logger.error(f"Unexpected error loading data: {e}", exc_info=True)
         logger.warning("Application starting in degraded mode")
 
+    # Create shared httpx client for Alpha Vantage API calls (connection pooling)
+    app.state.http_client = httpx.AsyncClient(
+        timeout=30.0,
+        limits=httpx.Limits(max_connections=10, max_keepalive_connections=5),
+        headers={"Accept": "application/json"},
+    )
+    logger.info("Shared httpx client created")
+
     yield
 
     # Shutdown: Cleanup
     logger.info("Application shutting down")
+
+    # Close shared httpx client
+    await app.state.http_client.aclose()
+    logger.info("Shared httpx client closed")
+
+    # Save cache metadata (if enabled)
+    if hasattr(settings, 'cache_enabled') and settings.cache_enabled:
+        try:
+            from app.services.alpha_vantage_cache import av_cache
+
+            if av_cache:
+                av_cache.save_metadata()
+                logger.info("Cache metadata saved")
+        except Exception as e:
+            logger.warning(f"Error saving cache metadata: {e}")
 
 
 # Create FastAPI app

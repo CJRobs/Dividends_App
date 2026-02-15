@@ -11,10 +11,11 @@ import { Layout } from '@/components/layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 import MonthView from '@/components/calendar/MonthView';
-import { useCalendar } from '@/hooks/useCalendar';
+import { useCalendar, useUpcomingDividendsLive } from '@/hooks/useCalendar';
 import { exportCalendar } from '@/lib/api';
-import { Download, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { Download, ChevronLeft, ChevronRight, Calendar, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function CalendarPage() {
@@ -22,6 +23,7 @@ export default function CalendarPage() {
   const [selectedYear, setSelectedYear] = useState(currentYear);
 
   const { data: calendarData, isLoading } = useCalendar(selectedYear, 12);
+  const { data: upcomingLive, isLoading: isLoadingUpcoming } = useUpcomingDividendsLive(90);
 
   const handleExport = async () => {
     try {
@@ -135,6 +137,60 @@ export default function CalendarPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Upcoming Dividends (Live) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Upcoming Ex-Dividend Dates
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoadingUpcoming ? (
+            <Skeleton className="h-[200px]" />
+          ) : upcomingLive && upcomingLive.length > 0 ? (
+            <div className="overflow-x-auto rounded-lg border border-border/50">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border/50 bg-muted/50">
+                    <th className="text-left px-4 py-3 font-medium">Ticker</th>
+                    <th className="text-left px-4 py-3 font-medium">Company</th>
+                    <th className="text-left px-4 py-3 font-medium">Ex-Date</th>
+                    <th className="text-right px-4 py-3 font-medium">Amount</th>
+                    <th className="text-left px-4 py-3 font-medium">Payment Date</th>
+                    <th className="text-left px-4 py-3 font-medium">Source</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {upcomingLive.map((div, i) => (
+                    <tr key={`${div.ticker}-${div.ex_date}-${i}`} className="border-b border-border/30 last:border-0">
+                      <td className="px-4 py-3 font-semibold">{div.ticker}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{div.company_name}</td>
+                      <td className="px-4 py-3">{div.ex_date}</td>
+                      <td className="px-4 py-3 text-right">
+                        {div.amount != null ? `$${div.amount.toFixed(4)}` : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {div.payment_date || '—'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge variant={div.source === 'fmp' ? 'default' : 'secondary'}>
+                          {div.source === 'fmp' ? 'FMP' : 'yfinance'}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-center py-8">
+              No upcoming ex-dividend dates found for your portfolio stocks in the next 90 days.
+            </p>
+          )}
+        </CardContent>
+      </Card>
       </div>
     </Layout>
   );
