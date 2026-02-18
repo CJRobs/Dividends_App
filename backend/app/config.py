@@ -60,11 +60,6 @@ class Settings(BaseSettings):
     # Environment
     environment: str = "development"
 
-    # Authentication Settings
-    secret_key: str = "CHANGE_THIS_TO_A_SECURE_RANDOM_KEY_IN_PRODUCTION"
-    algorithm: str = "HS256"
-    access_token_expire_minutes: int = 30
-
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

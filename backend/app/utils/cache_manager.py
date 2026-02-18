@@ -159,7 +159,6 @@ class TTLCache:
 
 # Global cache instances
 api_cache = TTLCache(max_size=500, default_ttl_minutes=5)
-screener_cache = TTLCache(max_size=1000, default_ttl_minutes=1440)  # 24 hours
 
 
 def cached(
@@ -257,13 +256,11 @@ def cached(
 def clear_all_caches():
     """Clear all global cache instances."""
     api_cache.clear()
-    screener_cache.clear()
     logger.info("All caches cleared")
 
 
 def get_cache_stats() -> dict:
     """Get statistics for all cache instances."""
     return {
-        "api_cache": api_cache.stats(),
-        "screener_cache": screener_cache.stats()
+        "api_cache": api_cache.stats()
     }

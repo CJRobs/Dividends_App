@@ -13,8 +13,6 @@ import logging
 
 from app.models.calendar import CalendarMonth, DividendEvent, UpcomingDividend, UpcomingDividendLive
 from app.dependencies import get_data
-from app.middleware.auth import require_auth
-from app.middleware.rate_limit import limiter
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +23,7 @@ router = APIRouter()
 async def get_calendar_view(
     year: int = Query(default=None, description="Year to view (default: current year)"),
     months: int = Query(default=12, ge=1, le=24, description="Number of months to display"),
-    user: Dict = Depends(require_auth),
+
     data: tuple = Depends(get_data)
 ):
     """
@@ -83,12 +81,11 @@ async def get_calendar_view(
 
 
 @router.get("/export.ics")
-@limiter.limit("10/minute")
 async def export_calendar(
     request,
     year: int = Query(default=None, description="Year to export (default: current year)"),
     months: int = Query(default=12, ge=1, le=24, description="Number of months to export"),
-    user: Dict = Depends(require_auth),
+
     data: tuple = Depends(get_data)
 ):
     """
@@ -164,7 +161,7 @@ async def export_calendar(
 @router.get("/upcoming", response_model=List[UpcomingDividend])
 async def get_upcoming_dividends(
     days: int = Query(default=30, ge=1, le=90, description="Number of days to look ahead"),
-    user: Dict = Depends(require_auth),
+
     data: tuple = Depends(get_data)
 ):
     """
@@ -253,7 +250,7 @@ async def get_upcoming_dividends(
 @router.get("/upcoming-live", response_model=List[UpcomingDividendLive])
 async def get_upcoming_dividends_live(
     days: int = Query(default=90, ge=1, le=365, description="Number of days to look ahead"),
-    user: Dict = Depends(require_auth),
+
     data: tuple = Depends(get_data),
 ):
     """

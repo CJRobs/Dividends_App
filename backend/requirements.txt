@@ -20,10 +20,6 @@ requests>=2.31.0
 # Financial Data (yfinance fallback provider)
 yfinance>=0.2.0
 
-# Authentication & Security
-python-jose[cryptography]>=3.3.0
-passlib[bcrypt]>=1.7.4
-slowapi>=0.1.9
 
 # PDF Generation
 reportlab>=4.0.0

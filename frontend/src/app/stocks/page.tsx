@@ -438,7 +438,7 @@ export default function StocksPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {overview?.stocks.map((stock) => (
-                      <SelectItem key={stock.ticker} value={stock.name}>
+                      <SelectItem key={stock.ticker} value={stock.ticker}>
                         {stock.name} ({stock.ticker})
                       </SelectItem>
                     ))}
@@ -512,7 +512,7 @@ export default function StocksPage() {
                   {/* Yearly Totals */}
                   <Card>
                     <CardHeader>
-                      <CardTitle>{selectedStock} Annual Dividend Totals</CardTitle>
+                      <CardTitle>{stockDetail?.detail?.name ?? selectedStock} Annual Dividend Totals</CardTitle>
                       <CardDescription>Total dividends received each year</CardDescription>
                     </CardHeader>
                     <CardContent>

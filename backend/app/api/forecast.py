@@ -21,7 +21,6 @@ from app.dependencies import get_data
 from app.models.portfolio import FICalculatorResponse
 from app.utils import cached_response
 from app.utils.logging_config import get_logger
-from app.middleware.rate_limit import limiter, get_rate_limit
 
 logger = get_logger()
 warnings.filterwarnings('ignore')
@@ -540,7 +539,6 @@ def create_ensemble(forecasts: List[ForecastResult], series: pd.Series, months: 
 
 
 @router.get("/", response_model=ForecastResponse)
-@limiter.limit(get_rate_limit("expensive"))
 @cached_response(ttl_minutes=10)
 async def get_all_forecasts(
     request: Request,

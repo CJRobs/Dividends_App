@@ -1,23 +1,19 @@
 """
 Pytest configuration and fixtures for backend tests.
 
-Provides reusable test fixtures for API testing, authentication, and data mocking.
+Provides reusable test fixtures for API testing and data mocking.
 """
 
 import pytest
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime
 from fastapi.testclient import TestClient
-from typing import Dict, Generator
-import json
-from pathlib import Path
+from typing import Generator
 
 # Import the main app
 from app.main import app
 from app.dependencies import set_data_state
 from app.config import get_settings
-from app.middleware.auth import create_access_token
-from app.utils.password import hash_password
 
 
 @pytest.fixture(scope="session")
@@ -102,110 +98,12 @@ def setup_test_data(mock_dividend_data):
     set_data_state(None)
 
 
-@pytest.fixture(scope="function")
-def auth_token(test_settings) -> str:
-    """
-    Create a valid JWT token for testing authenticated endpoints.
-
-    Returns:
-        JWT access token string
-    """
-    token = create_access_token(
-        data={"sub": "testuser"},
-        expires_delta=timedelta(minutes=30)
-    )
-    return token
-
-
-@pytest.fixture(scope="function")
-def auth_headers(auth_token) -> Dict[str, str]:
-    """
-    Create authorization headers with JWT token.
-
-    Args:
-        auth_token: JWT token from auth_token fixture
-
-    Returns:
-        Dictionary with Authorization header
-    """
-    return {"Authorization": f"Bearer {auth_token}"}
-
-
-@pytest.fixture(scope="session")
-def test_user_data():
-    """
-    Create test user data.
-
-    Returns:
-        Dictionary with test user information
-    """
-    return {
-        "username": "testuser",
-        "password": "testpass123",
-        "hashed_password": hash_password("testpass123")
-    }
-
-
-@pytest.fixture(scope="function")
-def mock_users_file(tmp_path, test_user_data):
-    """
-    Create a temporary users file for authentication tests.
-
-    Args:
-        tmp_path: Pytest temporary path fixture
-        test_user_data: Test user data fixture
-
-    Returns:
-        Path to the temporary users file
-    """
-    users_data = {
-        test_user_data["username"]: {
-            "username": test_user_data["username"],
-            "hashed_password": test_user_data["hashed_password"],
-            "disabled": False
-        }
-    }
-
-    users_file = tmp_path / "users.json"
-    with open(users_file, 'w') as f:
-        json.dump(users_data, f)
-
-    return users_file
-
-
-@pytest.fixture(scope="function")
-def expired_token(test_settings) -> str:
-    """
-    Create an expired JWT token for testing token expiration.
-
-    Returns:
-        Expired JWT token string
-    """
-    token = create_access_token(
-        data={"sub": "testuser"},
-        expires_delta=timedelta(seconds=-1)  # Already expired
-    )
-    return token
-
-
-@pytest.fixture(scope="function")
-def invalid_token() -> str:
-    """
-    Create an invalid JWT token for testing token validation.
-
-    Returns:
-        Invalid token string
-    """
-    return "invalid.jwt.token"
-
-
 # Pytest configuration hooks
 def pytest_configure(config):
     """Configure pytest with custom settings."""
     # Add custom markers
     config.addinivalue_line("markers", "unit: Unit tests")
     config.addinivalue_line("markers", "integration: Integration tests")
-    config.addinivalue_line("markers", "auth: Authentication tests")
     config.addinivalue_line("markers", "api: API endpoint tests")
 
 

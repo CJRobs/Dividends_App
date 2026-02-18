@@ -12,7 +12,6 @@ import {
   Calendar,
   CalendarDays,
   Building2,
-  Search,
   TrendingUp,
   FileText,
   Menu,
@@ -29,7 +28,6 @@ const navigation = [
   { name: 'Monthly', href: '/monthly', icon: Calendar, description: 'Monthly breakdown' },
   { name: 'Calendar', href: '/calendar', icon: CalendarDays, description: 'Dividend calendar' },
   { name: 'Stocks', href: '/stocks', icon: Building2, description: 'Stock analysis' },
-  { name: 'Screener', href: '/screener', icon: Search, description: 'Research stocks' },
   { name: 'Forecast', href: '/forecast', icon: TrendingUp, description: 'Future projections' },
   { name: 'Reports', href: '/reports', icon: FileText, description: 'Generate PDFs' },
 ];
