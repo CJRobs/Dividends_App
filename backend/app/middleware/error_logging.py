@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from datetime import datetime
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("dividends_app")
 
 
 class ErrorLoggingMiddleware(BaseHTTPMiddleware):

@@ -9,8 +9,11 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime, timedelta
+import logging
 import pandas as pd
 import io
+
+logger = logging.getLogger("dividends_app")
 
 # ReportLab imports
 from reportlab.lib.pagesizes import A4
@@ -349,6 +352,7 @@ async def preview_report(request: ReportRequest, data: tuple = Depends(get_data)
     period_df = df[(df["Time"] >= start_date) & (df["Time"] <= end_date)]
 
     if period_df.empty:
+        logger.warning(f"Report preview failed: no data for {request.period_type} {request.year}")
         raise HTTPException(status_code=404, detail="No data for this period")
 
     # Calculate metrics
@@ -415,13 +419,19 @@ async def generate_report(request: ReportRequest, data: tuple = Depends(get_data
     )
 
     # Generate PDF
-    pdf_bytes = create_pdf_report(
-        df,
-        request.period_type,
-        start_date,
-        end_date,
-        settings.default_currency
-    )
+    try:
+        pdf_bytes = create_pdf_report(
+            df,
+            request.period_type,
+            start_date,
+            end_date,
+            settings.default_currency
+        )
+    except Exception as e:
+        logger.error(f"PDF generation failed for {request.period_type} {request.year}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to generate PDF report")
+
+    logger.info(f"Generated {request.period_type} report for {request.year}")
 
     # Create filename
     if request.period_type == "Monthly":

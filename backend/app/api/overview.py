@@ -7,7 +7,10 @@ Provides portfolio summary statistics, YTD charts, and recent dividends.
 from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime
 from typing import List
+import logging
 import pandas as pd
+
+logger = logging.getLogger("dividends_app")
 
 from app.models.portfolio import (
     PortfolioSummary,
@@ -45,6 +48,7 @@ async def get_portfolio_summary(data: tuple = Depends(get_data)):
     settings = get_settings()
 
     if df.empty:
+        logger.warning("Portfolio summary requested but no dividend data available")
         raise HTTPException(status_code=404, detail="No dividend data available")
 
     current_year = datetime.now().year
@@ -100,6 +104,7 @@ async def get_ytd_chart(data: tuple = Depends(get_data)):
     df, monthly_data = data
 
     if df.empty:
+        logger.warning("YTD chart requested but no dividend data available")
         raise HTTPException(status_code=404, detail="No dividend data available")
 
     current_year = datetime.now().year
@@ -136,6 +141,7 @@ async def get_monthly_chart(year: int = None, data: tuple = Depends(get_data)):
     df, monthly_data = data
 
     if df.empty:
+        logger.warning("No dividend data available for request")
         raise HTTPException(status_code=404, detail="No dividend data available")
 
     if year is None:
@@ -177,6 +183,7 @@ async def get_top_stocks(limit: int = 10, data: tuple = Depends(get_data)):
     df, monthly_data = data
 
     if df.empty:
+        logger.warning("No dividend data available for request")
         raise HTTPException(status_code=404, detail="No dividend data available")
 
     # Aggregate by stock
@@ -221,6 +228,7 @@ async def get_recent_dividends_endpoint(limit: int = 10, data: tuple = Depends(g
     df, monthly_data = data
 
     if df.empty:
+        logger.warning("No dividend data available for request")
         raise HTTPException(status_code=404, detail="No dividend data available")
 
     recent = get_recent_dividends(df, limit)
@@ -248,6 +256,7 @@ async def get_yoy_comparison(data: tuple = Depends(get_data)):
     df, _ = data
 
     if df.empty:
+        logger.warning("No dividend data available for request")
         raise HTTPException(status_code=404, detail="No dividend data available")
 
     # Get all years in the data
@@ -285,6 +294,7 @@ async def get_annual_stats(data: tuple = Depends(get_data)):
     df, _ = data
 
     if df.empty:
+        logger.warning("No dividend data available for request")
         raise HTTPException(status_code=404, detail="No dividend data available")
 
     # Aggregate by year
@@ -390,6 +400,7 @@ async def get_distribution_analysis(data: tuple = Depends(get_data)):
     from app.config import MONTH_NAMES
 
     if df.empty:
+        logger.warning("No dividend data available for request")
         raise HTTPException(status_code=404, detail="No dividend data available")
 
     # Portfolio allocation (Top 10 + Others)

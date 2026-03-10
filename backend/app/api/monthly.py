@@ -7,8 +7,11 @@ Provides monthly dividend analysis, heatmaps, and company breakdowns.
 from fastapi import APIRouter, Depends, Query
 from datetime import datetime
 from typing import List, Optional
+import logging
 import pandas as pd
 import numpy as np
+
+logger = logging.getLogger("dividends_app")
 
 from app.models.monthly import (
     MonthlyByYearData,

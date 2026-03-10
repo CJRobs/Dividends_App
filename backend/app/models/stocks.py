@@ -71,7 +71,7 @@ class StockDetail(BaseModel):
     """Detailed stock information."""
     ticker: str
     name: str
-    isin: str
+    isin: Optional[str] = None
     total_dividends: float
     dividend_count: int
     average_dividend: float

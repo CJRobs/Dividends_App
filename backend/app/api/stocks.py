@@ -7,8 +7,11 @@ Provides stock-level analysis, period breakdowns, and concentration metrics.
 from fastapi import APIRouter, Depends, Query, HTTPException
 from typing import List, Optional, Literal
 from datetime import datetime
+import logging
 import pandas as pd
 import numpy as np
+
+logger = logging.getLogger("dividends_app")
 
 from app.models.stocks import (
     PeriodAnalysisResponse,
@@ -336,6 +339,7 @@ async def get_stock_details(ticker: str, data: tuple = Depends(get_data)):
     ].copy()
 
     if company_data.empty:
+        logger.warning(f"Stock lookup failed: '{ticker}' not found")
         raise HTTPException(status_code=404, detail=f"Stock '{ticker}' not found")
 
     # Basic info
