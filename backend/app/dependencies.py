@@ -18,7 +18,6 @@ _data_cache: dict = {
     "last_loaded": None
 }
 
-
 def set_data(df: pd.DataFrame, monthly_data: pd.DataFrame) -> None:
     """
     Set cached data. Called by main.py during startup and reload.
