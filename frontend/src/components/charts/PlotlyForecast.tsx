@@ -246,6 +246,10 @@ export function PlotlyForecastChart({
     return {
       ...base,
       height,
+      margin: {
+        ...base.margin,
+        b: 80,
+      },
       xaxis: {
         ...base.xaxis,
         tickangle: -45,
@@ -336,7 +340,7 @@ interface PlotlyProjectionBarChartProps {
 
 export function PlotlyProjectionBarChart({
   data,
-  height = 200,
+  height = 280,
   currency = '£',
   title,
   className,
@@ -385,6 +389,10 @@ export function PlotlyProjectionBarChart({
     return {
       ...base,
       height,
+      margin: {
+        ...base.margin,
+        t: 40,
+      },
       bargap: 0.35,
       xaxis: {
         ...base.xaxis,

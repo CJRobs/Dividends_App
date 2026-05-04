@@ -17,8 +17,11 @@ import { useCalendar, useUpcomingDividendsLive } from '@/hooks/useCalendar';
 import { exportCalendar } from '@/lib/api';
 import { Download, ChevronLeft, ChevronRight, Calendar, Clock } from 'lucide-react';
 import { toast } from 'sonner';
+import { usePortfolioStore } from '@/store/portfolioStore';
+import { formatCurrency } from '@/lib/constants';
 
 export default function CalendarPage() {
+  const { currency } = usePortfolioStore();
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
 
@@ -80,7 +83,7 @@ export default function CalendarPage() {
             <h1 className="text-3xl font-bold">{selectedYear}</h1>
             {!isLoading && (
               <p className="text-sm text-muted-foreground">
-                £{yearTotal.toFixed(2)} across {monthsWithDividends} months
+                {formatCurrency(yearTotal, currency)} across {monthsWithDividends} months
               </p>
             )}
           </div>
@@ -169,7 +172,7 @@ export default function CalendarPage() {
                       <td className="px-4 py-3 text-muted-foreground">{div.company_name}</td>
                       <td className="px-4 py-3">{div.ex_date}</td>
                       <td className="px-4 py-3 text-right">
-                        {div.amount != null ? `$${div.amount.toFixed(4)}` : '—'}
+                        {div.amount != null ? formatCurrency(div.amount, currency) : '—'}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">
                         {div.payment_date || '—'}

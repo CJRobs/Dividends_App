@@ -11,7 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TrendingUp, Calendar, Info, Sparkles, Calculator, Gauge, Settings2, ChartLine } from 'lucide-react';
-import { formatCurrency } from '@/lib/constants';
+import { formatCurrency, CURRENCY_SYMBOLS } from '@/lib/constants';
+import { usePortfolioStore } from '@/store/portfolioStore';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
 
@@ -67,6 +68,8 @@ interface ForecastResponse {
 }
 
 export default function ForecastPage() {
+  const { currency } = usePortfolioStore();
+  const currencySymbol = CURRENCY_SYMBOLS[currency] || currency;
   const [months, setMonths] = useState(12);
   const [lookback, setLookback] = useState(0); // 0 = use all data
   const [chartHistory, setChartHistory] = useState(0); // 0 = show all history
@@ -268,7 +271,7 @@ export default function ForecastPage() {
                         <CardDescription>Total Projected ({months}mo)</CardDescription>
                       </div>
                       <CardTitle className="text-3xl number-display value-positive">
-                        {formatCurrency(modelData.total_projected)}
+                        {formatCurrency(modelData.total_projected, currency)}
                       </CardTitle>
                     </CardHeader>
                   </Card>
@@ -279,7 +282,7 @@ export default function ForecastPage() {
                         <CardDescription>Monthly Average</CardDescription>
                       </div>
                       <CardTitle className="text-3xl number-display">
-                        {formatCurrency(modelData.monthly_average)}
+                        {formatCurrency(modelData.monthly_average, currency)}
                       </CardTitle>
                     </CardHeader>
                   </Card>
@@ -318,7 +321,7 @@ export default function ForecastPage() {
                       <PlotlyForecastChart
                         data={trimmedChartData}
                         height={400}
-                        currency="£"
+                        currency={currencySymbol}
                       />
                     </div>
                   </CardContent>
@@ -336,8 +339,8 @@ export default function ForecastPage() {
                     <CardContent>
                       <PlotlyProjectionBarChart
                         data={modelData.annual_projections}
-                        height={250}
-                        currency="£"
+                        height={300}
+                        currency={currencySymbol}
                       />
                     </CardContent>
                   </Card>

@@ -4,7 +4,7 @@ Calendar API Endpoints.
 Provides dividend calendar views and iCalendar export functionality.
 """
 
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, Query, Response, Request
 from datetime import datetime, timedelta
 from typing import List, Dict
 import pandas as pd
@@ -82,7 +82,7 @@ async def get_calendar_view(
 
 @router.get("/export.ics")
 async def export_calendar(
-    request,
+    request: Request,
     year: int = Query(default=None, description="Year to export (default: current year)"),
     months: int = Query(default=12, ge=1, le=24, description="Number of months to export"),
 

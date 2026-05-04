@@ -50,6 +50,13 @@ def get_data() -> Tuple[pd.DataFrame, pd.DataFrame]:
     return _data_cache["df"], _data_cache["monthly_data"]
 
 
+def clear_data() -> None:
+    """Clear cached data. Used in tests for cleanup."""
+    _data_cache["df"] = None
+    _data_cache["monthly_data"] = None
+    _data_cache["last_loaded"] = None
+
+
 def get_data_status() -> dict:
     """
     Get information about the cached data.
